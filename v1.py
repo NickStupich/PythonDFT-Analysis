@@ -26,7 +26,7 @@ def generateTimes(sampleFreq, numSamples):
 	return [float(t) / sampleFreq for t in range(numSamples)]
 	
 def generateFFTFrequencies(sampleFreq, numSamples, compression = 1.0):
-	binWidth = sampleFreq / numSamples
+	binWidth = float(sampleFreq) / numSamples
 	return [i * binWidth * compression for i in range(numSamples/2+1)]
 	
 def toDb(x):
@@ -75,12 +75,12 @@ def compareFrequencies():
 	
 def test1():
 	times = generateTimes(sampleFreq, numSamples)
+	print times[-1]
 	timeData = generateTimeDomain(times, [(60.0, 1.0)])
 	
 	compression = 0.05
 	
-	#plot(times, timeData)
-	
+	plot(times, timeData)
 	freqData = map(dtype, map(absolute, fourier(timeData, compression = compression)))
 	#freqData = map(toDb, freqData)
 	
