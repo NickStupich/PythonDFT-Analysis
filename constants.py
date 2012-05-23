@@ -1,5 +1,5 @@
 
-type = 2
+type = 5
 
 if type == 1:
 	windowSize = 128
@@ -41,7 +41,11 @@ elif type == 8:
 	samplesPerSecond = 8000.0/3
 	transformsPerSecond = 30
 	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-	
+elif type == 9:
+	windowSize = 128
+	samplesPerSecond = 808
+	transformsPerSecond = 30
+	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 	
 else:
 	raise Exception("invalid constants type")

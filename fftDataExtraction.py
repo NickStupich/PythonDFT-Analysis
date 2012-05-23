@@ -38,13 +38,13 @@ def extractFFTData(filename, magnitude = False):
 	
 	
 if __name__ == "__main__":
-	filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"
-	#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_100%.xls"
+	#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_Transition%.xls"
+	filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"
 	frequencyDomains, binSpacing = extractFFTData(filename)
 	
-	plotting.plotFrequencyDomain(frequencyDomains[0:-1:10], binSpacing, semilogY = True)
+	#plotting.plotFrequencyDomain(frequencyDomains[0:-1:10], binSpacing, semilogY = True)
 	
-	#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_Transitions.xls"
+	filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_Transitions.xls"
 	#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_Transitions.xls"
-	#data = getDownSampledData(filename)
-	#plotting.plotSpectrogram(data)
+	data = getDownSampledData(filename)
+	plotting.plotSpectrogram(data)
