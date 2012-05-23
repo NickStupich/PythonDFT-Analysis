@@ -2,7 +2,7 @@
 from frequencyCompression import dft as fourier
 
 from numpy import absolute
-from math import sin, pi, log10
+from math import cos, pi, log10, sin
 from matplotlib import pylab
 from numpy import float32 as dtype
 
@@ -89,6 +89,7 @@ def test1():
 	
 	#plot(frequencies, freqData, False)
 	plot(frequencies, freqData[:len(frequencies)], False)
+	open('frequencies.txt', 'w').write('\n'.join([str(x) + '\t' + str(y) for x, y in zip(frequencies, freqData[:len(frequencies)])]))
 	
 def main():
 	
