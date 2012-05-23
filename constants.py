@@ -1,5 +1,5 @@
 
-type = 12
+type = 5
 
 if type == 1:
 	windowSize = 128
@@ -67,7 +67,6 @@ else:
 #number of partial 60hz waves
 coherence =2.0 * abs(0.5 - (60.0 * ((float(windowSize) / samplesPerSecond) % (1.0 / 60.0))))
 resolution = (float(samplesPerSecond)/windowSize)
-
 
 #print some info
 print 'Bins: %s' % str([int(bin * resolution) for bin in bins])

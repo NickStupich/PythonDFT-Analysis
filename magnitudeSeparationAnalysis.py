@@ -39,7 +39,7 @@ def svmClassifierAccuracy(fData1, fData2, binsToUse):
 	prob = svmutil.svm_problem(svmResult, svmData)
 	param = svmutil.svm_parameter()
 	
-	param.parse_options('-q')
+	param.parse_options('-q')	#quiet
 	param.cross_validation = True
 	param.nr_fold = 10
 	param.kernel_type = svmutil.LINEAR
