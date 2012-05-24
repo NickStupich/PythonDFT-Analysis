@@ -3,7 +3,7 @@ baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
 #baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 
 transformsPerSecond = 30
-type = 5
+type = 8
 
 if type == 1:
 	windowSize = 128
@@ -53,6 +53,10 @@ elif type == 12:
 	windowSize = 111
 	samplesPerSecond = 1000.0 / 3
 	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19]		
+elif type == 13:
+	windowSize = 1000
+	samplesPerSecond = 10000
+	bins = [2, 3, 4, 5, 7, 8, 9, 10, 11]
 else:
 	raise Exception("invalid constants type")
 	

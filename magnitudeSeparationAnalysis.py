@@ -16,8 +16,6 @@ def measureFFTMagnitudeDiff(fData1, fData2, binsToUse):
 		dist = (mean2-mean1) / sqrt(dev1 *dev1 + dev2 * dev2)
 		distances.append(dist)
 		
-	#print distances
-		
 	total = stats.mean(distances)
 	return total
 	
@@ -36,7 +34,6 @@ def svmClassifierAccuracy(fData1, fData2, binsToUse):
 	
 	svmResult = [0 for _ in range(len(svmData2))] + [1 for _ in range(len(svmData2))]
 	svmAccuracy.printSvmValidationAccuracy(svmData, svmResult)	
-	
 	
 if __name__ == "__main__":
 	

@@ -63,6 +63,6 @@ if __name__ == "__main__":
 	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, True)
 	transforms = fftDataExtraction.DoFrequencyBinning(transforms)
 	
-	#svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
+	svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
 	svmAccuracy.graphSvmLatency(transforms, outputs, timeData, outputTimes)
 	

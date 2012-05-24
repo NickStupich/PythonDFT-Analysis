@@ -1,6 +1,7 @@
 import svmutil
 from matplotlib import pylab
 import constants
+import stats
 
 def printSvmValidationAccuracy(input, output):
 	
@@ -22,11 +23,7 @@ def getSvmParam(cross_validation_only = False):
 	
 	return param
 	
-def graphSvmLatency(input, output, rawTimeDomainData, fftTimes):
-	#use a n fold accuracy type thing, so that n-1 classifiers estimate the output at each point.  Then plot that value
-	#vs the time domain data to see when we transition
-	
-	folds = 10
+def getSVMValidationPredictions(input, output, folds):
 	n = len(input)
 	predictions = [None] * n
 	
@@ -48,9 +45,27 @@ def graphSvmLatency(input, output, rawTimeDomainData, fftTimes):
 		for index, label in zip(testIndeces, labels):
 			predictions[index] = label
 			
-	accuracy = 100.0 * sum([int(a == p) for a, p in zip(output, predictions)]) / n
-	print 'Cross validation accuracy: %f%%' % accuracy
-		
+	return predictions
+	
+def graphSvmLatency(input, output, rawTimeDomainData, fftTimes):
+	#use a n fold accuracy type thing, so that n-1 classifiers estimate the output at each point.  Then plot that value
+	#vs the time domain data to see when we transition
+	
+	n = len(input)
+	
+	#predictions = getSVMValidationPredictions(input, output, 10)		
+	#accuracy = 100.0 * sum([int(a == p) for a, p in zip(output, predictions)]) / n
+	#print 'Cross validation accuracy: %f%%' % accuracy
+	
+	#get a better measure of actual accuracy at different times by combining predictions from many numbers of folds validation
+	allPredictions = [[] for _ in range(len(input))]
+	for folds in range(10, 20):
+		pred = getSVMValidationPredictions(input, output, folds)
+		for i in range(len(pred)):
+			allPredictions[i].append(pred[i])
+	
+	predictions = map(stats.mean, allPredictions)
+	
 	#do the graphing now
 	rawTimes = [1000 * float(x) / constants.samplesPerSecond for x in range(len(rawTimeDomainData))]
 	#fftTimes = [1000.0 *(0 * float(constants.windowSize) / constants.samplesPerSecond + float(x) / constants.transformsPerSecond) for x in range(0, len(input))]
