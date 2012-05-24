@@ -3,7 +3,7 @@ baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
 #baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 
 transformsPerSecond = 30
-type = 8
+type = 1
 
 if type == 1:
 	windowSize = 128
