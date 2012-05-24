@@ -55,9 +55,9 @@ def getFFTWindows(timeData, output):
 	return fDataResult, outputResult, outputTimes
 	
 if __name__ == "__main__":
-	baseFn = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
-	#baseFn = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
-	timeData, output = createChangingTimeDomainData(baseFn, low = 0, high = 10)
+	constants.samplesPerSecond = int(constants.samplesPerSecond)
+	
+	timeData, output = createChangingTimeDomainData(constants.baseFilename, low = 0, high = 10)
 	
 	dataWindows, outputs, outputTimes = getFFTWindows(timeData, output)
 	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, True)

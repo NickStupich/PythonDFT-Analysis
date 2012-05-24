@@ -39,11 +39,9 @@ def svmClassifierAccuracy(fData1, fData2, binsToUse):
 	
 	
 if __name__ == "__main__":
-	fnBase = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
-	#fnBase = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 	
-	fn1 = fnBase % 0
-	fn2 = fnBase % 10
+	fn1 = constants.baseFilename % 0
+	fn2 = constants.baseFilename % 10
 	
 	fData1, binSpacing = fftDataExtraction.extractFFTData(fn1, True)
 	fData2, binSpacing = fftDataExtraction.extractFFTData(fn2, True)

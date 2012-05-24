@@ -18,7 +18,7 @@ def getSvmParam(cross_validation_only = False):
 		param.cross_validation = True
 		param.nr_fold = 10
 	param.kernel_type = svmutil.LINEAR
-	param.C = 0.1
+	param.C = 10.0 ** 2.0
 	
 	return param
 	
