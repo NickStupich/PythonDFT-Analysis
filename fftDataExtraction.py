@@ -28,12 +28,24 @@ def getFFTWindows(timeData):
 		
 	return result
 
-def extractFFTData(filename, magnitude = False):
-	downSampled = getDownSampledData(filename)	
-	windows = getFFTWindows(downSampled)
+def applyTransformsToWindows(windows, magnitude = False):
 	frequencyDomains = map(fourier, windows)
 	if magnitude:
 		frequencyDomains = map(absolute, frequencyDomains)
+		
+	return frequencyDomains
+	
+def DoFrequencyBinning(frequencyDomains):
+	return map(lambda x: [x[bin] for bin in bins], frequencyDomains)
+	
+def extractFFTData(filename, magnitude = False, applyBinning = False):
+	downSampled = getDownSampledData(filename)	
+	windows = getFFTWindows(downSampled)
+	frequencyDomains = applyTransformsToWindows(windows, magnitude)
+	
+	if applyBinning:
+		frequencyDomains = DoFrequencyBinning(frequencyDomains)
+	
 	return frequencyDomains, (float(samplesPerSecond) / windowSize)
 	
 	

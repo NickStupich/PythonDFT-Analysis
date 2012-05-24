@@ -2,7 +2,7 @@ import stats
 import fftDataExtraction
 import constants
 from math import sqrt
-import svmutil
+import svmAccuracy
 
 def measureFFTMagnitudeDiff(fData1, fData2, binsToUse):
 	meanAndDev1 = getBinMeanAndStdDev(fData1)
@@ -35,18 +35,8 @@ def svmClassifierAccuracy(fData1, fData2, binsToUse):
 	svmData = svmData1 + svmData2
 	
 	svmResult = [0 for _ in range(len(svmData2))] + [1 for _ in range(len(svmData2))]
+	svmAccuracy.printSvmValidationAccuracy(svmData, svmResult)	
 	
-	prob = svmutil.svm_problem(svmResult, svmData)
-	param = svmutil.svm_parameter()
-	
-	param.parse_options('-q')	#quiet
-	param.cross_validation = True
-	param.nr_fold = 10
-	param.kernel_type = svmutil.LINEAR
-	param.C = 0.1
-	
-	accuracy = svmutil.svm_train(prob, param)
-	return accuracy
 	
 if __name__ == "__main__":
 	fnBase = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
@@ -58,10 +48,8 @@ if __name__ == "__main__":
 	fData1, binSpacing = fftDataExtraction.extractFFTData(fn1, True)
 	fData2, binSpacing = fftDataExtraction.extractFFTData(fn2, True)
 	
-	bins = constants.bins
-	
-	separation = measureFFTMagnitudeDiff(fData1, fData2, bins)
+	separation = measureFFTMagnitudeDiff(fData1, fData2, constants.bins)
 	print "0%% vs 10%% separation: %f" % separation
 	
-	svmAccuracy = svmClassifierAccuracy(fData1, fData2, bins)
+	svmAccuracy = svmClassifierAccuracy(fData1, fData2, constants.bins)
 	#print "SVM accuracy: %lf" % svmAccuracy
