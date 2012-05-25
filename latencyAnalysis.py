@@ -209,14 +209,14 @@ if __name__ == "__main__":
 	constants.samplesPerSecond = int(constants.samplesPerSecond)
 	
 	#timeData, output = createChangingTimeDomainData(constants.baseFilename, low = 0, high = 10)
-	timeData, output = createChangingTimeDomainDataPhaseMatch(constants.baseFilename, low = 0, high = 10)
+	timeData, output = createChangingTimeDomainDataPhaseMatch(constants.baseFilename, low = constants.lowPercent, high = constants.highPercent)
 	
 	
 	dataWindows, outputs, outputTimes = getFFTWindows(timeData, output)
 	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, True)
 	transforms = fftDataExtraction.DoFrequencyBinning(transforms)
 	
-	svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
+	#svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
 	predictions = svmAccuracy.getAverageSVMPredictions(transforms, outputs)
 	
 	riseLat, fallLat = measureLatency(predictions, outputs, outputTimes)

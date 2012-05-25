@@ -37,8 +37,8 @@ def svmClassifierAccuracy(fData1, fData2, binsToUse):
 	
 if __name__ == "__main__":
 	
-	fn1 = constants.baseFilename % 0
-	fn2 = constants.baseFilename % 10
+	fn1 = constants.baseFilename % constants.lowPercent
+	fn2 = constants.baseFilename % constants.highPercent
 	
 	fData1, binSpacing = fftDataExtraction.extractFFTData(fn1, True)
 	fData2, binSpacing = fftDataExtraction.extractFFTData(fn2, True)

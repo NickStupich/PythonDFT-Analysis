@@ -1,9 +1,10 @@
 
-baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
-#baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
-
+#baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
+baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
+lowPercent = 0
+highPercent = 10
 transformsPerSecond = 30
-type = 5
+type = 12
 
 if type == 1:
 	windowSize = 128
@@ -51,8 +52,8 @@ elif type == 11:
 	bins = range(6,28, 2) + range(33, 58, 2	)
 elif type == 12:
 	windowSize = 111
-	samplesPerSecond = 1000.0 / 3
-	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19]		
+	samplesPerSecond = 4000.0 / 3
+	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16]	
 elif type == 13:
 	windowSize = 1000
 	samplesPerSecond = 10000
@@ -64,6 +65,7 @@ else:
 coherence =2.0 * abs(0.5 - (60.0 * ((float(windowSize) / samplesPerSecond) % (1.0 / 60.0))))
 resolution = (float(samplesPerSecond)/windowSize)
 
+
 #print some info
 print 'Bins: %s' % str([int(bin * resolution) for bin in bins])
 print "Window size: %d" % windowSize
@@ -73,3 +75,4 @@ print "Frequency resolution: %fHz" % resolution
 print "Coherence: %f" % coherence
 print "Maximum frequency: %f" % (samplesPerSecond / 2)
 print 'Window time length: %dms' % int(1000 * windowSize / samplesPerSecond)
+print '60Hz cycles per window: %f' % (60.0 * windowSize / samplesPerSecond)

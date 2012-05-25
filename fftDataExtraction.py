@@ -1,4 +1,4 @@
-from dataImport import readADSFile
+import dataImport
 import re
 from constants import *
 from numpy.fft import rfft as fourier
@@ -14,8 +14,8 @@ def _downSample(rawData, rawSps):
 	return result
 	
 def getDownSampledData(filename):
-	rawData = readADSFile(filename)
-	rawSps = getSPS(filename)
+	rawData = dataImport.readADSFile(filename)
+	rawSps = dataImport.getSPS(filename)
 	
 	result = _downSample(rawData, rawSps)
 	return result

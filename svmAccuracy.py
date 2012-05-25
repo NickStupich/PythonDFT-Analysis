@@ -62,11 +62,8 @@ def graphSvmLatency(predictions, output, rawTimeDomainData, fftTimes):
 	#use a n fold accuracy type thing, so that n-1 classifiers estimate the output at each point.  Then plot that value
 	#vs the time domain data to see when we transition
 	
-	#do the graphing now
 	rawTimes = [1000 * float(x) / constants.samplesPerSecond for x in range(len(rawTimeDomainData))]
-	#fftTimes = [1000.0 *(0 * float(constants.windowSize) / constants.samplesPerSecond + float(x) / constants.transformsPerSecond) for x in range(0, len(input))]
-	#print zip(fftTimes, output)
-	print len(fftTimes), len(output)
+	
 	figure = pylab.figure(figsize=(20, 12))
 	pylab.subplot(211)
 	
