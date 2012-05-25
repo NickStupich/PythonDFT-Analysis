@@ -7,8 +7,11 @@ import magnitudeSeparationAnalysis
 import svmAccuracy
 import plotting
 import dataImport
+import stats
 
 startIndexRange = 0.05	#s = 20ms
+dataLength = 0.5
+numSignalChunks = 8
 
 def createChangingTimeDomainData(baseFilename, low = 0, high = 10):
 	dat0 = fftDataExtraction.getDownSampledData(baseFilename % low)
@@ -70,11 +73,7 @@ def createChangingTimeDomainDataPhaseMatch(baseFilename, low = 0, high = 10):
 	sps = dataImport.getSPS(baseFilename % low)
 	if dataImport.getSPS(baseFilename % high) != sps:
 		raise Exception("samples per second do not match - FAIL")
-		
-	#5 seconds each - combine together in 9 0.5 second chunks from each signal, phase matching over 20ms to match 60Hz
 	
-	dataLength = 0.5
-	numSignalChunks = 8
 	dataSources = [dat0, dat1]
 	indeces = [0, 0]
 	
@@ -168,6 +167,44 @@ def getFFTWindows(timeData, output):
 	
 	return fDataResult, outputResult, outputTimes
 	
+def squareWave(period, riseDelay, fallDelay, outputTimes):
+	result = []
+	for time in outputTimes:
+		cycleTime = (float(time) / period) % 1000.0
+		if cycleTime < float(fallDelay) or cycleTime > 500.0 + float(riseDelay):
+			x = 1
+		else:
+			x = 0
+		result.append(x)
+	return result
+	
+	
+def measureLatency(predictions, outputs, outputTimes):
+	#find the difference between predictions and outputs while varying the rise and fall times of outputs, look for best match
+	
+	riseDelayScores = []
+	for riseDelay in range(-100, 200, 5):
+		sqWave = squareWave(dataLength * 2, riseDelay, 0.0, outputTimes)		
+		score = stats.Rmse(sqWave, predictions)
+		riseDelayScores.append((score, riseDelay))
+		
+	riseDelay = min(riseDelayScores)[1]
+	
+	fallDelayScores = []
+	for fallDelay in range(-100, 200, 5):
+		sqWave = squareWave(dataLength * 2, riseDelay, fallDelay, outputTimes)
+		score = stats.Rmse(sqWave, predictions)
+		fallDelayScores.append((score, fallDelay))
+		
+	fallDelay = min(fallDelayScores)[1]
+	
+	sqWave = squareWave(dataLength * 2, riseDelay, fallDelay, outputTimes)
+	
+	#pylab.plot(outputTimes, sqWave, '-o') ;pylab.plot(outputTimes, predictions, '-o') ;pylab.plot([0.0, 0.0], [1.5, -0.5]) ;pylab.show()
+	
+	return riseDelay, fallDelay
+	
+	
 if __name__ == "__main__":
 	constants.samplesPerSecond = int(constants.samplesPerSecond)
 	
@@ -180,5 +217,12 @@ if __name__ == "__main__":
 	transforms = fftDataExtraction.DoFrequencyBinning(transforms)
 	
 	svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
-	svmAccuracy.graphSvmLatency(transforms, outputs, timeData, outputTimes)
+	predictions = svmAccuracy.getAverageSVMPredictions(transforms, outputs)
+	
+	riseLat, fallLat = measureLatency(predictions, outputs, outputTimes)
+	print 'rising latency: %dms' % riseLat
+	print 'falling latency: %dms' % fallLat
+	
+	svmAccuracy.graphSvmLatency(predictions, outputs, timeData, outputTimes)
+	
 	

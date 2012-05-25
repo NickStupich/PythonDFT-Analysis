@@ -4,6 +4,7 @@ from constants import *
 from numpy.fft import rfft as fourier
 from numpy import absolute
 import plotting
+from math import log10
 
 def _downSample(rawData, rawSps):
 	result = []
@@ -35,8 +36,8 @@ def applyTransformsToWindows(windows, magnitude = False):
 		
 	return frequencyDomains
 	
-def DoFrequencyBinning(frequencyDomains):
-	return map(lambda x: [x[bin] for bin in bins], frequencyDomains)
+def DoFrequencyBinning(frequencyDomains, logOfBin = False):
+	return map(lambda x: [log10(x[bin]) if logOfBin else x[bin] for bin in bins], frequencyDomains)
 	
 def extractFFTData(filename, magnitude = False, applyBinning = False):
 	downSampled = getDownSampledData(filename)	

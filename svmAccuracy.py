@@ -47,16 +47,7 @@ def getSVMValidationPredictions(input, output, folds):
 			
 	return predictions
 	
-def graphSvmLatency(input, output, rawTimeDomainData, fftTimes):
-	#use a n fold accuracy type thing, so that n-1 classifiers estimate the output at each point.  Then plot that value
-	#vs the time domain data to see when we transition
-	
-	n = len(input)
-	
-	#predictions = getSVMValidationPredictions(input, output, 10)		
-	#accuracy = 100.0 * sum([int(a == p) for a, p in zip(output, predictions)]) / n
-	#print 'Cross validation accuracy: %f%%' % accuracy
-	
+def getAverageSVMPredictions(input, output):	
 	#get a better measure of actual accuracy at different times by combining predictions from many numbers of folds validation
 	allPredictions = [[] for _ in range(len(input))]
 	for folds in range(10, 20):
@@ -65,6 +56,11 @@ def graphSvmLatency(input, output, rawTimeDomainData, fftTimes):
 			allPredictions[i].append(pred[i])
 	
 	predictions = map(stats.mean, allPredictions)
+	return predictions
+	
+def graphSvmLatency(predictions, output, rawTimeDomainData, fftTimes):
+	#use a n fold accuracy type thing, so that n-1 classifiers estimate the output at each point.  Then plot that value
+	#vs the time domain data to see when we transition
 	
 	#do the graphing now
 	rawTimes = [1000 * float(x) / constants.samplesPerSecond for x in range(len(rawTimeDomainData))]

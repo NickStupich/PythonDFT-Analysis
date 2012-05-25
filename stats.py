@@ -114,6 +114,9 @@ def logLinearInterpolation(input, params):
 def Gaussian(x, sigma = 1.0, center = 0):
 	return math.exp((x-center)**2 / (2 * sigma**2))
 	
+def Rmse(x, y):
+	return math.sqrt(mean([(x-y)**2.0 for x, y in zip(x, y)]))
+	
 if __name__ == "__main__":
 	l1 = [0, 1, 2]
 	l2 = [2, 4, 9]
