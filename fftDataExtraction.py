@@ -6,10 +6,10 @@ from numpy import absolute
 import plotting
 from math import log10
 
-def _downSample(rawData, rawSps):
+def _downSample(rawData, rawSps, sps = samplesPerSecond):
 	result = []
-	for i in range(int(len(rawData) * samplesPerSecond / rawSps)):
-		result.append(rawData[int(round(i * rawSps / samplesPerSecond))])
+	for i in range(int(len(rawData) * sps / rawSps)):
+		result.append(rawData[int(round(i * rawSps / sps))])
 		
 	return result
 	

@@ -1,7 +1,6 @@
 from matplotlib import pylab
 from numpy import absolute
 import collections
-import constants
 
 def plotFrequencyDomain(data, binSpacing, semilogX = False, semilogY = False):
 	if not isinstance(data[0], int) and not isinstance(data[0], float):
@@ -37,6 +36,7 @@ def plotFrequencyDomain(data, binSpacing, semilogX = False, semilogY = False):
 	pylab.show()
 	
 def plotSpectrogram(timeDomainData):
+	import constants
 	pylab.specgram(	timeDomainData, 
 					NFFT = constants.windowSize,
 					Fs = constants.samplesPerSecond, 

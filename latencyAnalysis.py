@@ -178,7 +178,6 @@ def squareWave(period, riseDelay, fallDelay, outputTimes):
 		result.append(x)
 	return result
 	
-	
 def measureLatency(predictions, outputs, outputTimes):
 	#find the difference between predictions and outputs while varying the rise and fall times of outputs, look for best match
 	
