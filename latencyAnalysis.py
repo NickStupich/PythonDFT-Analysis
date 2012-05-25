@@ -6,6 +6,9 @@ from matplotlib import pylab
 import magnitudeSeparationAnalysis
 import svmAccuracy
 import plotting
+import dataImport
+
+startIndexRange = 0.05	#s = 20ms
 
 def createChangingTimeDomainData(baseFilename, low = 0, high = 10):
 	dat0 = fftDataExtraction.getDownSampledData(baseFilename % low)
@@ -24,6 +27,117 @@ def createChangingTimeDomainData(baseFilename, low = 0, high = 10):
 		correctOutput += [1] * constants.samplesPerSecond
 		
 	return allData, correctOutput
+	
+def CrossCorrelation(dat1, dat2):
+	if len(dat1) != len(dat2):
+		raise Exception("lengths don't match")
+		
+	result = 0
+	for index in range(len(dat1)):
+		result += dat1[index] * dat2[index]
+		
+	return result
+	
+def getBestStartIndex(oldData, newData, sps):
+	#remove between 20 and 40 ms of new data, wherever the cross-correlation is greatest
+	correlations = []
+	dataLen = int(sps * startIndexRange)
+	for startIndex in range(dataLen, 2*dataLen):
+		crossCor = CrossCorrelation(oldData[-dataLen:], newData[startIndex:startIndex+dataLen])
+		correlations.append((crossCor, startIndex))
+		
+	#print '\n'.join([str(x) for x in correlations])
+	
+	#pylab.plot(map(lambda x: x[1], correlations), map(lambda x: x[0], correlations))
+	#pylab.show()
+	
+	#result is more or less a sin() curve, with a dc value overlaid.  we DON'T want to match that dc part, 
+	#so if the overall maximum is at either end of the line, don't use that.  We need one in the middle where
+	#we know that 60Hz is best matched
+	
+	while True:
+		x = max(correlations)
+		if x == correlations[-1]:
+			correlations.remove(x)
+		elif x == correlations[0]:
+			correlations.remove(x)
+		else:
+			return x[1]
+	
+def createChangingTimeDomainDataPhaseMatch(baseFilename, low = 0, high = 10):
+	dat0 = dataImport.readADSFile(baseFilename % low)
+	dat1 = dataImport.readADSFile(baseFilename % high)
+	sps = dataImport.getSPS(baseFilename % low)
+	if dataImport.getSPS(baseFilename % high) != sps:
+		raise Exception("samples per second do not match - FAIL")
+		
+	#5 seconds each - combine together in 9 0.5 second chunks from each signal, phase matching over 20ms to match 60Hz
+	
+	dataLength = 0.5
+	numSignalChunks = 8
+	dataSources = [dat0, dat1]
+	indeces = [0, 0]
+	
+	if dataLength < float(constants.windowSize) / constants.samplesPerSecond * 1.5:
+		raise Exception("Data length is too short - not getting full ffts of a single data source")
+	
+	numSamples = int(dataLength * sps)
+	result = []
+	output = []
+	
+	for i in range(numSignalChunks * 2):
+		newIndex = i % 2
+			
+		if i == 0:
+			dataToAppend = centerAroundZero(dataSources[newIndex][indeces[newIndex] : indeces[newIndex] + numSamples])
+			indeces[newIndex] += numSamples
+		else:
+			#gotta phase match
+			newData = centerAroundZero(dataSources[newIndex][indeces[newIndex] : int(indeces[newIndex] + numSamples + sps * startIndexRange*2)])
+			startOffset = getBestStartIndex(result, newData, sps)
+			#print startOffset
+			dataToAppend = newData[startOffset: startOffset + numSamples]
+			indeces[newIndex] += numSamples + startOffset
+			
+		if len(dataToAppend) != numSamples:
+			raise Exception("Data to be appended is not the correct length")
+		
+		oldIndex = len(result)
+		result += dataToAppend
+		output += [newIndex] * numSamples
+		
+		"""times = range(len(result))
+	pylab.subplot(211)
+	pylab.plot(times, result)
+	pylab.subplot(212)
+	pylab.specgram(	result, 
+					NFFT = 1024,
+					Fs = sps, 
+					noverlap = 768,
+					sides = 'onesided',
+					detrend = pylab.detrend_mean
+					)
+	pylab.show()
+	"""
+		
+	#down sample result and output
+	result = fftDataExtraction._downSample(result, sps)
+	output = fftDataExtraction._downSample(output, sps)
+	"""
+	times = range(len(result))
+	pylab.subplot(211)
+	pylab.plot(times, result)
+	pylab.subplot(212)
+	pylab.specgram(	result, 
+					NFFT = constants.windowSize,
+					Fs = constants.samplesPerSecond, 
+					noverlap = constants.samplesPerSecond / constants.transformsPerSecond,
+					sides = 'onesided',
+					detrend = pylab.detrend_mean
+					)
+	pylab.show()
+	"""
+	return result, output
 	
 def centerAroundZero(timeData):
 	#line of best fit, then subtract that
@@ -57,7 +171,9 @@ def getFFTWindows(timeData, output):
 if __name__ == "__main__":
 	constants.samplesPerSecond = int(constants.samplesPerSecond)
 	
-	timeData, output = createChangingTimeDomainData(constants.baseFilename, low = 0, high = 10)
+	#timeData, output = createChangingTimeDomainData(constants.baseFilename, low = 0, high = 10)
+	timeData, output = createChangingTimeDomainDataPhaseMatch(constants.baseFilename, low = 0, high = 10)
+	
 	
 	dataWindows, outputs, outputTimes = getFFTWindows(timeData, output)
 	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, True)

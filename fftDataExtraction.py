@@ -14,7 +14,7 @@ def _downSample(rawData, rawSps):
 	
 def getDownSampledData(filename):
 	rawData = readADSFile(filename)
-	rawSps = int(filename.split('kSPS')[0].split('/')[-1]) * 1000
+	rawSps = getSPS(filename)
 	
 	result = _downSample(rawData, rawSps)
 	return result

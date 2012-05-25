@@ -111,6 +111,9 @@ def logLinearFit(lx, ly):
 def logLinearInterpolation(input, params):
 	return (math.log(input) if input > 0 else -1) * params[0] + params[1]
 	
+def Gaussian(x, sigma = 1.0, center = 0):
+	return math.exp((x-center)**2 / (2 * sigma**2))
+	
 if __name__ == "__main__":
 	l1 = [0, 1, 2]
 	l2 = [2, 4, 9]
