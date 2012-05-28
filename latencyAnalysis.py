@@ -105,37 +105,10 @@ def createChangingTimeDomainDataPhaseMatch(baseFilename, low = 0, high = 10):
 		result += dataToAppend
 		output += [newIndex] * numSamples
 		
-		"""times = range(len(result))
-	pylab.subplot(211)
-	pylab.plot(times, result)
-	pylab.subplot(212)
-	pylab.specgram(	result, 
-					NFFT = 1024,
-					Fs = sps, 
-					noverlap = 768,
-					sides = 'onesided',
-					detrend = pylab.detrend_mean
-					)
-	pylab.show()
-	"""
 		
 	#down sample result and output
-	result = fftDataExtraction._downSample(result, sps)
-	output = fftDataExtraction._downSample(output, sps)
-	"""
-	times = range(len(result))
-	pylab.subplot(211)
-	pylab.plot(times, result)
-	pylab.subplot(212)
-	pylab.specgram(	result, 
-					NFFT = constants.windowSize,
-					Fs = constants.samplesPerSecond, 
-					noverlap = constants.samplesPerSecond / constants.transformsPerSecond,
-					sides = 'onesided',
-					detrend = pylab.detrend_mean
-					)
-	pylab.show()
-	"""
+	result = fftDataExtraction.downSample(result, sps, interpolate = True)
+	output = fftDataExtraction.downSample(output, sps,)
 	return result, output
 	
 def centerAroundZero(timeData):
@@ -203,7 +176,6 @@ def measureLatency(predictions, outputs, outputTimes):
 	
 	return riseDelay, fallDelay
 	
-	
 if __name__ == "__main__":
 	constants.samplesPerSecond = int(constants.samplesPerSecond)
 	
@@ -211,7 +183,8 @@ if __name__ == "__main__":
 	timeData, output = createChangingTimeDomainDataPhaseMatch(constants.baseFilename, low = constants.lowPercent, high = constants.highPercent)
 	
 	dataWindows, outputs, outputTimes = getFFTWindows(timeData, output)
-	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, True)
+	
+	transforms = fftDataExtraction.applyTransformsToWindows(dataWindows, magnitude = True)
 	transforms = fftDataExtraction.DoFrequencyBinning(transforms)
 	
 	#svmAccuracy.printSvmValidationAccuracy(transforms, outputs)
