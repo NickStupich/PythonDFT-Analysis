@@ -9,12 +9,12 @@ baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
 lowPercent = 0
 highPercent = 10
 transformsPerSecond = 30
-type = 12
+type = 1
 
 if type == 1:
 	windowSize = 128
 	samplesPerSecond = 768
-	bins = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+	bins = [4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28]
 elif type == 2:
 	windowSize = 256
 	samplesPerSecond = 1024

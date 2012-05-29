@@ -1,4 +1,5 @@
 import os
+from math import cos, pi, sin
 
 def readADSFile(filename):
 	return [float(x) for x in open(filename).read(
@@ -6,3 +7,12 @@ def readADSFile(filename):
 
 def getSPS(filename):
 	return int(filename.split('kSPS')[0].split('/')[-1]) * 1000
+	
+def generateSignal(rawSps, frequencies, seconds = 5.0):
+	result = [0] *int( seconds * rawSps)
+	for f, a in frequencies:
+		for index in range(len(result)):
+			result[index] += sin(2.0 * pi * index * f / rawSps) * a
+			
+			
+	return result
