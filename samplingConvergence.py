@@ -3,15 +3,16 @@ from numpy.fft import rfft as fourier
 from numpy import absolute
 import plotting
 from matplotlib import pylab
-from math import log10, log, floor, ceil
+from math import log10, log, floor, ceil, exp, sqrt
 import fftDataExtraction
 import stats
+from random import random
 #import constants
 from noiseAnalysis import getToneLeakage
 
 samplesPerSecond = 768
 windowSize = 128
-transformsPerSecond = 5
+transformsPerSecond = int(samplesPerSecond / windowSize)
 
 initialOffset = 1.0
 
@@ -46,37 +47,98 @@ class AdjacentBinsAdjustment:
 		sampleInterval -= self.dir * self.intervalChangeSize
 		self.lastDir = self.dir
 		
-		return sampleInterval
+		return sampleInterval, sampleInterval
 		
 class AdjacentPowerAnnealing:
 	def __init__(self, sampleInterval):
-		self.intervalChangeSize = sampleInterval * 0.002
+		self.intervalChangeSize = sampleInterval * 0.001
 		self.lastLeakage = 999999.9
 		self.lastInterval = sampleInterval
 		
+		self.bestInterval = self.lastInterval
+		self.bestLeakage = self.lastLeakage
+		
+		self.t = 10
+		
+	def __CanMoveUphill(self):
+		result = random() < 0.1 + 0.5 * exp(-1.0 * self.t)
+		return result
+		
 	def OnNewBuffer(self, buffer, sampleInterval):
+		self.t += 1
 		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
 		bins = [9, 11]
 		leakage = sum([power[bin] for bin in bins])
 		
+		if leakage > self.lastLeakage and not self.__CanMoveUphill():
+			return self.lastInterval, self.bestInterval
 		
+		if leakage < self.bestLeakage:
+			self.bestLeakage = leakage
+			self.bestInterval = self.lastInterval
+			
+		#move in a random direction by a scaled random amount
+		x = 20.0
+		movement = (random() - 0.5) * self.intervalChangeSize * x / (self.t + x) 
+		
+		self.lastLeakage = leakage
+		self.lastInterval = sampleInterval
+		
+		return (sampleInterval + movement), self.bestInterval
+		
+		
+class RandomLeapKeepBest:
+	def __init__(self, sampleInterval):
+		self.bestInterval = sampleInterval
+		self.bestLeakage = 999999999.9
+		self.t = 10
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		self.t += 1
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
+		bins = [8, 9, 11, 12]
+		leakage = sum([power[bin] for bin in bins])
+		
+		if leakage < self.bestLeakage:
+			self.bestLeakage = leakage
+			self.bestInterval = sampleInterval
+			print (rawSps / self.bestInterval), self.bestLeakage
+			
+		newInterval = self.bestInterval * (1.0 + 0.005 * (random() - 0.5)/sqrt(self.t))
+		return newInterval, self.bestInterval
 
 def ConvergeOnCoherentSampling(rawData, rawSps):
 	leakages = []
+	bestLeakages = []
 	sampleRates = []
+	bestRates = []
 	sampleInterval = rawSps / (samplesPerSecond + initialOffset)
 
-	algorithm = AdjacentBinsAdjustment(sampleInterval)
-	intervalCounter = 0.0
+	#algorithm = AdjacentBinsAdjustment(sampleInterval)
+	algorithm = AdjacentPowerAnnealing(sampleInterval)
+	#algorithm = RandomLeapKeepBest(sampleInterval)
 	
+	intervalCounter = 0.0
+	bestIntervalCounter = 0.0
 	bufferOverlap = windowSize / transformsPerSecond
 	
 	buffer = []
-	
+	bestBuffer = []
+	bestInterval = sampleInterval
 	lastSample = 0.0
 	
 	for sample in rawData:
 		intervalCounter += 1.0
+		bestIntervalCounter += 1.0
+		if bestIntervalCounter >= bestInterval:
+			bestIntervalCounter %= bestInterval
+			weight0 = bestIntervalCounter
+			weight1 = 1.0 - bestIntervalCounter
+			
+			interpolatedSample = weight0 * sample + weight1 * lastSample
+			bestBuffer.append(interpolatedSample)
+			bestBuffer = bestBuffer[-windowSize:]
+			
 		if intervalCounter >= sampleInterval:
 			intervalCounter %= sampleInterval
 			weight0 = intervalCounter
@@ -89,25 +151,34 @@ def ConvergeOnCoherentSampling(rawData, rawSps):
 			if len(buffer) == windowSize + bufferOverlap:
 				buffer = buffer[bufferOverlap:]
 				
-				sampleInterval = algorithm.OnNewBuffer(buffer, sampleInterval)
+				sampleInterval, bestInterval = algorithm.OnNewBuffer(buffer, sampleInterval)
+				
 				leakage = getToneLeakage(buffer)
 				leakages.append(leakage)
 				
+				bestLeakage = getToneLeakage(bestBuffer)
+				bestLeakages.append(bestLeakage)
+				
 				sampleRate = rawSps / sampleInterval
 				sampleRates.append(sampleRate)
+				
+				bestRates.append(rawSps / bestInterval)
 				
 		lastSample = sample
 	
 	totalError = sum(leakages)
 	print 'Total error through all time: %d' % totalError
 	
-	pylab.subplot(211)
-	pylab.plot(range(len(sampleRates)), sampleRates)
-	pylab.grid(True)
-	pylab.subplot(212)
-	pylab.plot(range(len(leakages)), leakages)
-	pylab.grid(True)
-	pylab.show()
+	
+	fig, ax = pylab.subplots()
+	#pylab.subplot(211)
+	ax.plot(range(len(sampleRates)), sampleRates, 'Blue')
+	ax.plot(range(len(sampleRates)), bestRates, 'Red')
+	ax.plot([0, 0], [767, 769])
+	#pylab.grid(True); pylab.subplot(212)
+	ax.twinx().plot(range(len(leakages)), leakages, color = 'Blue')
+	ax.twinx().plot(range(len(bestLeakages)), leakages, color = 'Red')
+	pylab.grid(True); pylab.show()
 	
 if __name__ == "__main__":
 	#data = dataImport.readADSFile(filename)
