@@ -3,15 +3,17 @@ from numpy.fft import rfft as fourier
 from numpy import absolute
 import plotting
 from matplotlib import pylab
-from math import log10, log, floor, ceil, exp, sqrt
+from math import log10, log, floor, ceil, exp, sqrt, sin, pi
 import fftDataExtraction
 import stats
-from random import random
+from random import random, seed
 #import constants
 from noiseAnalysis import getToneLeakage
 #from __future__ import division
 import sys
 import functools
+
+seed(0)
 
 samplesPerSecond = 768
 windowSize = 128
@@ -91,6 +93,47 @@ class SimulatedAnnealing:
 		
 		return self.bestInterval, newInterval
 
+class ShapeMatching:
+	def __init__(self, sampleInterval):
+		self.shapes = []
+		increment = 0.01; bottom = 764.0; top = 772.0
+		
+		frequencies = range(0, 384+1, 6)
+		
+		for sps in [bottom + increment * i for i in range(int((top-bottom)/increment))]:
+			timeData = [sin(60.0*2.0 * pi * t/sps) for t in range(windowSize)]
+			freqData = self.normalize(map(absolute, fourier(timeData)))
+			
+			self.shapes.append((sps, freqData))
+		#	pylab.plot(frequencies, freqData)
+			
+		#pylab.grid()
+		#pylab.show()
+		
+	def normalize(self, freqData):
+		s = sum(freqData)
+		result = [f/s for f in freqData]
+		return result
+		
+	def distance(self, data1, data2):
+		return sum([(x1-x2)**2 for x1, x2 in zip(data1, data2)])
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		fData = self.normalize(map(absolute, fourier(buffer)))
+		
+		closest = None
+		for sps, data in self.shapes:
+			dist = self.distance(data, fData)
+			if closest is None or dist < closest[0]:
+				closest = (dist, sps)
+				
+		newSampleInterval = sampleInterval * closest[1] / samplesPerSecond
+		
+		print closest, (rawSps / newSampleInterval)
+		return newSampleInterval, newSampleInterval
+		
+		
+		
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
@@ -108,9 +151,9 @@ def GetExpectedError(algorithmClass, n = 100):
 		leakages.append(leakage)
 	
 	#print leakages
-	print '\nAverage error: %f \t+/-: %f' % (stats.mean(leakages), stats.stdDev(leakages))
+	print '\r%s: Average error: %f \t+/-: %f' % (algorithmClass.__name__, stats.mean(leakages), stats.stdDev(leakages))
 		
-def TestConvergence(algorithmClass, plot = True, initialOffset = 2.0, printStatements = True):
+def TestConvergence(algorithmClass, plot = True, initialOffset = 3.0, printStatements = True):
 	global rawData
 	
 	realSampleInterval = rawSps / (samplesPerSecond + initialOffset)
@@ -205,7 +248,12 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 2.0, printState
 	return result
 
 if __name__ == "__main__":
-#	totalLeakage = TestConvergence(SimulatedAnnealing)
 
-	GetExpectedError(SimulatedAnnealing)
+	totalLeakage = TestConvergence(ShapeMatching)
+
+	"""May30 results:
+	SimulatedAnnealing: Average error: 1.535507     +/-: 1.606706
+	RandomLeapKeepBest: Average error: 1.166930     +/-: 1.307195
+	"""
+	#GetExpectedError(SimulatedAnnealing)
 	#GetExpectedError(RandomLeapKeepBest)

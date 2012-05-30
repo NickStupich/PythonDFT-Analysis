@@ -74,15 +74,15 @@ else:
 coherence =2.0 * abs(0.5 - (60.0 * ((float(windowSize) / samplesPerSecond) % (1.0 / 60.0))))
 resolution = (float(samplesPerSecond)/windowSize)
 
-
-#print some info
-print 'Base file: %s' % baseFilename
-print 'Bins: %s' % str([int(bin * resolution) for bin in bins])
-print "Window size: %d" % windowSize
-print "Samples per second: %d" % samplesPerSecond
-print "Transforms per second: %d" % transformsPerSecond
-print "Frequency resolution: %fHz" % resolution
-print "Coherence: %f" % coherence
-print "Maximum frequency: %f" % (samplesPerSecond / 2)
-print 'Window time length: %dms' % int(1000 * windowSize / samplesPerSecond)
-print '60Hz cycles per window: %f' % (60.0 * windowSize / samplesPerSecond)
+def printConstants():
+	#print some info
+	print 'Base file: %s' % baseFilename
+	print 'Bins: %s' % str([int(bin * resolution) for bin in bins])
+	print "Window size: %d" % windowSize
+	print "Samples per second: %d" % samplesPerSecond
+	print "Transforms per second: %d" % transformsPerSecond
+	print "Frequency resolution: %fHz" % resolution
+	print "Coherence: %f" % coherence
+	print "Maximum frequency: %f" % (samplesPerSecond / 2)
+	print 'Window time length: %dms' % int(1000 * windowSize / samplesPerSecond)
+	print '60Hz cycles per window: %f' % (60.0 * windowSize / samplesPerSecond)
