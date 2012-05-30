@@ -22,7 +22,7 @@ transformsPerSecond = 30
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 #rawData = dataImport.readADSFile(filename)
-rawData = dataImport.generateSignal(rawSps, [(60.0, 1.0)], seconds = 10.0)
+rawData = dataImport.generateSignal(rawSps, [(60.0, 1.0)], seconds = 5.0)
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -31,10 +31,12 @@ class TestAlgorithm:
 		return sampleInterval, sampleInterval
 		
 class RandomLeapKeepBest:
-	def __init__(self, sampleInterval):
+	def __init__(self, sampleInterval, leapSize = 0.01, decayPow = 0.8):
 		self.bestInterval = sampleInterval
 		self.bestLeakage = 999999999.9
 		self.t = 10
+		self.leapSize = leapSize
+		self.decayPow = decayPow
 		
 	def OnNewBuffer(self, buffer, sampleInterval):
 		self.t += 1
@@ -46,7 +48,7 @@ class RandomLeapKeepBest:
 			self.bestLeakage = leakage
 			self.bestInterval = sampleInterval
 			
-		newInterval = self.bestInterval * (1.0 + 0.01 * (random() - 0.5)/(self.t**0.8))
+		newInterval = self.bestInterval * (1.0 + self.leapSize * (random() - 0.5)/(self.t**self.decayPow))
 		return self.bestInterval, newInterval
 		
 class SimulatedAnnealing:
@@ -94,7 +96,7 @@ class SimulatedAnnealing:
 		return self.bestInterval, newInterval
 
 class ShapeMatching:
-	def __init__(self, sampleInterval):
+	def __init__(self, sampleInterval, increment = 0.01):
 		self.shapes = []
 		increment = 0.01; bottom = 764.0; top = 772.0
 		
@@ -105,10 +107,6 @@ class ShapeMatching:
 			freqData = self.normalize(map(absolute, fourier(timeData)))
 			
 			self.shapes.append((sps, freqData))
-		#	pylab.plot(frequencies, freqData)
-			
-		#pylab.grid()
-		#pylab.show()
 		
 	def normalize(self, freqData):
 		s = sum(freqData)
@@ -129,15 +127,27 @@ class ShapeMatching:
 				
 		newSampleInterval = sampleInterval * closest[1] / samplesPerSecond
 		
-		print closest, (rawSps / newSampleInterval)
+		#print closest, (rawSps / newSampleInterval)
 		return newSampleInterval, newSampleInterval
 		
+class HybridShapeRandom:
+	def __init__(self, sampleInterval):
+		self.FirstLoop = True
+		self.shapeMatch = ShapeMatching(sampleInterval, increment = 0.1)
+		self.randomLeap = RandomLeapKeepBest(sampleInterval, leapSize = 0.004, decayPow = 1.0)
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		if self.FirstLoop:
+			self.FirstLoop = False
+			return self.shapeMatch.OnNewBuffer(buffer, sampleInterval)
+		else:
+			return self.randomLeap.OnNewBuffer(buffer, sampleInterval)
 		
 		
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
-def GetExpectedError(algorithmClass, n = 100):
+def GetExpectedError(algorithmClass, n = 5000):
 	import multiprocessing
 	
 	pool = multiprocessing.Pool(7)
@@ -153,7 +163,7 @@ def GetExpectedError(algorithmClass, n = 100):
 	#print leakages
 	print '\r%s: Average error: %f \t+/-: %f' % (algorithmClass.__name__, stats.mean(leakages), stats.stdDev(leakages))
 		
-def TestConvergence(algorithmClass, plot = True, initialOffset = 3.0, printStatements = True):
+def TestConvergence(algorithmClass, plot = True, initialOffset = 0.1, printStatements = True):
 	global rawData
 	
 	realSampleInterval = rawSps / (samplesPerSecond + initialOffset)
@@ -249,11 +259,11 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 3.0, printState
 
 if __name__ == "__main__":
 
-	totalLeakage = TestConvergence(ShapeMatching)
+	totalLeakage = TestConvergence(HybridShapeRandom)
 
-	"""May30 results:
+	"""May30 results (n=5000):
 	SimulatedAnnealing: Average error: 1.535507     +/-: 1.606706
 	RandomLeapKeepBest: Average error: 1.166930     +/-: 1.307195
 	"""
-	#GetExpectedError(SimulatedAnnealing)
+	#GetExpectedError(HybridShapeRandom)
 	#GetExpectedError(RandomLeapKeepBest)
