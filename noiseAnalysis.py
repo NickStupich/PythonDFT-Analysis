@@ -177,9 +177,12 @@ def getToneLeakage(downSampledData):
 	
 	#leakage = sum([x for x, f in zip(fData, frequencies) if abs(f % 60.0) > 5.0])
 	#bins = constants.bins
-	bins = [9, 11]
 	
-	leakage = sum([fData[x] for x in constants.bins])
+	#bins = [9, 11]	
+	#leakage = sum([fData[x] for x in constants.bins])
+	
+	leakage = (fData[9] + fData[11]) / fData[10]
+	
 	return leakage
 	
 def PlotFreqDomain(rawData, rawSps, sps):
