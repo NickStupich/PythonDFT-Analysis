@@ -13,8 +13,6 @@ import constants
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_10%.xls"; rawSps = 32000
 
-
-
 def plot(fData, frequencies):
 	
 	fData = map(log10, fData)
@@ -102,7 +100,7 @@ def ConvergeOnCoherentSampling(rawData, rawSps):
 				
 		lastSample = sample
 	
-def PlotSpillageVsFrequency(rawData, rawSps):
+def PlotSpillageVsSampleFrequency(rawData, rawSps):
 	startOffset = 7
 	allData = []
 	for offset in range(0, 2500, 100):
@@ -138,6 +136,41 @@ def PlotSpillageVsFrequency(rawData, rawSps):
 	
 	pylab.show()
 	
+def PlotSpillageVsNoiseFrequency():
+	frequencies = [x/10.0 for x in range(590, 610)]
+	allData = [[] for _ in frequencies]
+	sps = 768
+	xs  =[]
+		
+	for i, noiseFreq in enumerate(frequencies):
+		data = dataImport.generateSignal(rawSps, [(noiseFreq, 1.0)])
+		startOffset = 7
+		for offset in range(0, 2500, 100):
+		
+			downSampledData = fftDataExtraction.downSample(data, rawSps, sps)[offset+startOffset:offset+128+startOffset]
+			
+			#pylab.plot([x/float(sps) for x in range(len(downSampledData))], downSampledData); pylab.show()
+			
+			#print sps, offset, len(downSampledData)
+			#frequencies = [float(sps) * x / len(downSampledData) for x in range(len(downSampledData)/2+1)]
+			
+			leakage = getToneLeakage(downSampledData)
+			#print 'leakage: %f' % leakage
+			#plot(fData, frequencies)
+			#print '%d - %f' % (sps, leakage)
+			allData[i].append(leakage)
+	
+			
+	pylab.subplot(211)
+	for ys in zip(*allData):
+		pylab.plot(frequencies, ys)
+	
+	means = map(stats.mean, allData)
+	pylab.subplot(212)
+	pylab.plot(frequencies, means, '-o')
+	
+	pylab.show()
+	
 def getToneLeakage(downSampledData):
 	fData = map(lambda x: x*x, map(absolute, fourier(downSampledData)))
 	#pylab.semilogy(frequencies, fData); pylab.show()
@@ -158,7 +191,8 @@ if __name__ == "__main__":
 	data = dataImport.readADSFile(filename)
 	#data = dataImport.generateSignal(rawSps, [(60.0, 1.0)])#, (120.0, 0.5), (180.0, 0.8)])
 	
-	PlotSpillageVsFrequency(data, rawSps)
+	#PlotSpillageVsSampleFrequency(data, rawSps)
+	PlotSpillageVsNoiseFrequency()
 	#ConvergeOnCoherentSampling(data, rawSps)
 	#PlotFreqDomain(data, rawSps, 770)
 	
