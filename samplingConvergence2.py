@@ -22,7 +22,9 @@ transformsPerSecond = 30
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 #rawData = dataImport.readADSFile(filename)
-rawData = dataImport.generateSignal(rawSps, [(60., 1.0)], seconds = 5.0)
+rawData = dataImport.generateSignal(rawSps, [(60., 1.0)], seconds = 10.0)
+
+#rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False); rawSps = 8000
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -31,12 +33,13 @@ class TestAlgorithm:
 		return sampleInterval, sampleInterval
 		
 class RandomLeapKeepBest:
-	def __init__(self, sampleInterval, leapSize = 0.02, decayPow = 0.5):
+	def __init__(self, sampleInterval, leapSize = 0.02, decayPow = 0.8):
 		self.bestInterval = sampleInterval
 		self.bestLeakage = 999999999.9
 		self.t = 10
 		self.leapSize = leapSize
 		self.decayPow = decayPow
+		self.lastInterval = sampleInterval
 		
 	def OnNewBuffer(self, buffer, sampleInterval):
 		self.t += 1
@@ -46,10 +49,15 @@ class RandomLeapKeepBest:
 		
 		if leakage < self.bestLeakage:
 			self.bestLeakage = leakage
-			self.bestInterval = sampleInterval
+			self.bestInterval = self.lastInterval
 			
-		newInterval = self.bestInterval * (1.0 + self.leapSize * (random() - 0.5)/(self.t**self.decayPow))
-		return self.bestInterval, newInterval
+		#self.lastInterval = self.bestInterval * (1.0 + self.leapSize * (random() - 0.5)/(self.t**self.decayPow))
+		#maxLeapSize = self.leapSize / log10(self.t)
+		maxLeapSize = self.leapSize / (self.t**self.decayPow)
+		
+		self.lastInterval = self.bestInterval * (1.0 + maxLeapSize * (random() - 0.5))
+		
+		return self.bestInterval, self.lastInterval
 		
 class SimulatedAnnealing:
 	def __init__(self, sampleInterval):
@@ -187,7 +195,7 @@ def GetExpectedError(algorithmClass, n = 1000):
 	#print leakages
 	print '\r%s: Average error: %f \t+/-: %f' % (algorithmClass.__name__, stats.mean(leakages), stats.stdDev(leakages))
 		
-def TestConvergence(algorithmClass, plot = True, initialOffset = -4.0, printStatements = True):
+def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printStatements = True):
 	global rawData
 	
 	realSampleInterval = rawSps / (samplesPerSecond + initialOffset)
@@ -244,13 +252,13 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = -4.0, printStat
 			if len(testBuffer) > windowSize + testBufferNewAmount:
 				testBuffer = testBuffer[-windowSize:]
 				
-				realSampleInterval, testSampleInterval = algorithm.OnNewBuffer(testBuffer, testSampleInterval)
-				
 				leakage = getToneLeakage(testBuffer)
 				testLeakages.append(leakage)
 				testLeakageTimes.append(time)
 				testSampleRates.append(float(rawSps) / testSampleInterval)
 				
+				realSampleInterval, testSampleInterval = algorithm.OnNewBuffer(testBuffer, testSampleInterval)
+								
 		lastSample = sample
 	
 	result = sum(realLeakages)	

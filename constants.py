@@ -3,8 +3,8 @@
 windowPolyFitSubtraction = 5
 	
 
-baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
-#baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
+#baseFilename = "Data/Mark/32kSPS_160kS_FlexorRadialis_%d%%.xls"
+baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 
 lowPercent = 0
 highPercent = 10

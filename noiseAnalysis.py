@@ -137,7 +137,7 @@ def PlotSpillageVsSampleFrequency(rawData, rawSps):
 	pylab.show()
 	
 def PlotSpillageVsNoiseFrequency():
-	frequencies = [x/10.0 for x in range(590, 610)]
+	frequencies = [x/100.0 for x in range(5980, 6020)]
 	allData = [[] for _ in frequencies]
 	sps = 768
 	xs  =[]
@@ -164,14 +164,15 @@ def PlotSpillageVsNoiseFrequency():
 	pylab.subplot(211)
 	for ys in zip(*allData):
 		pylab.plot(frequencies, ys)
-	
+	pylab.grid(True)
 	means = map(stats.mean, allData)
 	pylab.subplot(212)
+	pylab.grid(True)
 	pylab.plot(frequencies, means, '-o')
 	
 	pylab.show()
 	
-def getToneLeakage(downSampledData):
+def getToneLeakage(downSampledData, useAllBins = True):
 	fData = map(lambda x: x*x, map(absolute, fourier(downSampledData)))
 	#pylab.semilogy(frequencies, fData); pylab.show()
 	
@@ -181,7 +182,10 @@ def getToneLeakage(downSampledData):
 	#bins = [9, 11]	
 	#leakage = sum([fData[x] for x in constants.bins])
 	
-	leakage = (fData[9] + fData[11]) / fData[10]
+	if useAllBins:
+		leakage = sum([fData[i] for i in range(len(fData)) if i != 10]) / fData[10]
+	else:
+		leakage = (fData[9] + fData[11]) / fData[10]
 	
 	return leakage
 	

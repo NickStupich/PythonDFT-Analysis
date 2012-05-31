@@ -86,7 +86,6 @@ class AdjacentPowerAnnealing:
 		
 		return (sampleInterval + movement), self.bestInterval
 		
-		
 class RandomLeapKeepBest:
 	def __init__(self, sampleInterval):
 		self.bestInterval = sampleInterval
