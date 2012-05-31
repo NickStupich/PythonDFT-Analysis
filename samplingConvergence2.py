@@ -13,7 +13,7 @@ from noiseAnalysis import getToneLeakage
 import sys
 import functools
 
-seed(0)
+seed(1)
 
 samplesPerSecond = 768
 windowSize = 128
@@ -22,7 +22,7 @@ transformsPerSecond = 30
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 #rawData = dataImport.readADSFile(filename)
-rawData = dataImport.generateSignal(rawSps, [(60.0, 1.0)], seconds = 5.0)
+rawData = dataImport.generateSignal(rawSps, [(60., 1.0)], seconds = 5.0)
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -31,7 +31,7 @@ class TestAlgorithm:
 		return sampleInterval, sampleInterval
 		
 class RandomLeapKeepBest:
-	def __init__(self, sampleInterval, leapSize = 0.01, decayPow = 0.8):
+	def __init__(self, sampleInterval, leapSize = 0.02, decayPow = 0.5):
 		self.bestInterval = sampleInterval
 		self.bestLeakage = 999999999.9
 		self.t = 10
@@ -127,7 +127,7 @@ class ShapeMatching:
 				
 		newSampleInterval = sampleInterval * closest[1] / samplesPerSecond
 		
-		#print closest, (rawSps / newSampleInterval)
+		print closest, (rawSps / newSampleInterval), (rawSps / sampleInterval)
 		return newSampleInterval, newSampleInterval
 		
 class HybridShapeRandom:
@@ -143,11 +143,35 @@ class HybridShapeRandom:
 		else:
 			return self.randomLeap.OnNewBuffer(buffer, sampleInterval)
 		
+class PeakImbalance:
+	def __init__(self, sampleInterval, leapSize = 0.01, decayPow = 1.0):
+		self.bestInterval = sampleInterval
+		self.bestLeakage = 999999999.9
+		self.t = 10
+		self.leapSize = leapSize
+		self.decayPow = decayPow
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
+		
+		leakage = power[9] + power[11]
+		
+		if leakage < self.bestLeakage:
+			self.bestLeakage = leakage
+			self.bestInterval = sampleInterval
+			
+		left = power[8] + power[9]
+		right = power[11] + power[12]
+		center = (left) / (left + right) - 0.5
+		#print left, right, center, rawSps / sampleInterval
+		newInterval = self.bestInterval * (1.0 + self.leapSize * (random() - center) / (self.t**self.decayPow))
+			
+		return self.bestInterval, newInterval
 		
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
-def GetExpectedError(algorithmClass, n = 5000):
+def GetExpectedError(algorithmClass, n = 1000):
 	import multiprocessing
 	
 	pool = multiprocessing.Pool(7)
@@ -163,7 +187,7 @@ def GetExpectedError(algorithmClass, n = 5000):
 	#print leakages
 	print '\r%s: Average error: %f \t+/-: %f' % (algorithmClass.__name__, stats.mean(leakages), stats.stdDev(leakages))
 		
-def TestConvergence(algorithmClass, plot = True, initialOffset = 0.1, printStatements = True):
+def TestConvergence(algorithmClass, plot = True, initialOffset = -4.0, printStatements = True):
 	global rawData
 	
 	realSampleInterval = rawSps / (samplesPerSecond + initialOffset)
@@ -259,11 +283,19 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 0.1, printState
 
 if __name__ == "__main__":
 
-	totalLeakage = TestConvergence(HybridShapeRandom)
+	#totalLeakage = TestConvergence(PeakImbalance)
+	totalLeakage = TestConvergence(RandomLeapKeepBest)
 
-	"""May30 results (n=5000):
+	"""May30 results (n=5000), Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls:
 	SimulatedAnnealing: Average error: 1.535507     +/-: 1.606706
 	RandomLeapKeepBest: Average error: 1.166930     +/-: 1.307195
+	
+	May30 n=10000, Generated data
+	RandomLeapKeepBest: Average error: 1.061977     +/-: 1.184265
+	SimulatedAnnealing: Average error: 1.431364     +/-: 1.506392
+	HybridShapeRandom: Average error: 5.130757      +/-: 6.733491
 	"""
+	
+	#GetExpectedError(PeakImbalance)
+	#GetExpectedError(SimulatedAnnealing)
 	#GetExpectedError(HybridShapeRandom)
-	#GetExpectedError(RandomLeapKeepBest)
