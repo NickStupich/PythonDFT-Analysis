@@ -121,13 +121,13 @@ def testPlotFrequencyDomain():
 	
 if __name__ == "__main__":
 
-	testPlotFrequencyDomain()
+	#testPlotFrequencyDomain()
 	
 	#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_Transition%.xls"
 	#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"
-	#frequencyDomains, binSpacing = extractFFTData(baseFilename % 0)
+	frequencyDomains, binSpacing = extractFFTData(baseFilename % 0)
 	
-	#plotting.plotFrequencyDomain(frequencyDomains[0:-1:10], binSpacing, semilogY = True)
+	plotting.plotFrequencyDomain(frequencyDomains[0:-1:10], binSpacing, semilogY = False)
 	
 	#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_Transitions.xls"
 	#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_Transitions.xls"

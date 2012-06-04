@@ -2,14 +2,18 @@ import dataImport
 import fftDataExtraction
 import stats
 from matplotlib import pylab
+from numpy import polyfit
+from random import random
+from multiprocessing import Pool
+
 
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
-#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_10%.xls"; rawSps = 32000
+#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 rawData = dataImport.readADSFile(filename)
 f = 60.0
-#rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (3.0 * f, 0.333)], seconds = 10.0)
-rawData = fftDataExtraction.downSample(rawData, 32000, 8000, interpolate = False)
+#rawData = dataImport.generateSignal(8000, [(f, 1.0)], seconds = 10.0)
+rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False)
 
 rawSps = 8000
 
@@ -17,8 +21,9 @@ rawSps = 8000
 #downSampled = fftDataExtraction.downSample(rawData, rawSps, finalSps, interpolate = True)
 
 def getSignalCoherenceError(downSampledFrequency, rawData = rawData):
-	downSampled = fftDataExtraction.downSample(rawData, rawSps, downSampledFrequency, interpolate = True)
-	#downSampled = downSampled[:int(downSampledFrequency)]
+	downSampled = fftDataExtraction.downSample(rawData, rawSps, downSampledFrequency, interpolate = True)#[int(random()*100):]
+	#downSampled = downSampled[:int(downSampledFrequency)/2]
+	#downSampled = downSampled[:40]
 	highSamples = downSampled[::2]
 	lowSamples = downSampled[1::2]
 
@@ -34,15 +39,22 @@ def getSignalCoherenceError(downSampledFrequency, rawData = rawData):
 	#return 1.0 / slope
 	#return max(differences) - min(differences)
 	
+	#derivSquared = sum([(differences[i+1] - differences[i])**2.0 for i in range(len(differences)-1)])
+	#return derivSquared
+	
 	return stats.variance(differences)
 	
 	
 if __name__ == "__main__":
 	if 1:
 		frequencies = [f/1000.0 for f in range(119500, 120500, 1)]
-		errors = map(getSignalCoherenceError, frequencies)
+		pool = Pool(6)
 		
-		pylab.plot(frequencies, errors)
+		errors = pool.map(getSignalCoherenceError, frequencies)
+		#coefficients = polyfit(frequencies, errors, 2)
+		#fitted = [sum([f**(2-n) * c for n, c in enumerate(coefficients)]) for f in frequencies]
+		#pylab.plot(frequencies, fitted)
+		pylab.semilogy(frequencies, errors)#, '-o')
 		pylab.grid(True)
 		pylab.show()
 		

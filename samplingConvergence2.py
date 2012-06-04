@@ -2,32 +2,41 @@ import dataImport
 from numpy.fft import rfft as fourier
 from numpy import absolute, polyfit
 import plotting
+import numpy
 from matplotlib import pylab
 from math import log10, log, floor, ceil, exp, sqrt, sin, pi
 import fftDataExtraction
 import stats
 from random import random, seed
 #import constants
-from noiseAnalysis import getToneLeakage
 #from __future__ import division
 import sys
 import functools
 
 seed(1)
 
-samplesPerSecond = 768
+samplesPerSecond = 512
 windowSize = 128
 transformsPerSecond = 30
+noiseBin = 15
 
-#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
-filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
+filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
-rawData = dataImport.readADSFile(filename)
-f = 59.9
-#rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 10.0)
+#rawData = dataImport.readADSFile(filename)
+f = 59.96
+rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 10.0)
 
-rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, 7950.0, interpolate = False)
+tempF = 8100.0; rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, tempF, interpolate = False)
+print 'Ideal sample rate: %s' % (59.96 / 60.0 * samplesPerSecond * rawSps / tempF)
 
+rangePercentage = 2.0
+
+def getToneLeakage(downSampledData):
+	power = map(lambda x: x*x, map(absolute, fourier(downSampledData)))
+	result = (power[noiseBin-1] + power[noiseBin+1]) / power[noiseBin]
+	return result
+	
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
 		pass
@@ -216,46 +225,39 @@ class QuadraticErrorFitting:
 		
 class QuadraticErrorFitting2:
 	def __init__(self, sampleInterval):
-		self.startingXs = [float(rawSps) / x for x in range(760, 776, 2)]
+		low = samplesPerSecond * (1.0 - rangePercentage / 100)
+		high = samplesPerSecond *(1.0 + rangePercentage / 100)
+		steps = 6
+		self.startingXs = [float(rawSps) / x for x in [low + i * (high-low)/steps for i in range(steps)]]
 		self.xs = []
 		self.ys = []
+		self.coefficients = None
+		
+	def GetFirstInterval(self):
+		return self.startingXs.pop()
 		
 	def OnNewBuffer(self, buffer, sampleInterval):
-		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
-		leakage = power[9] + power[11]
+		leakage = getToneLeakage(buffer)
 
 		self.xs.append(sampleInterval)
 		self.ys.append(leakage)
 		
 		if self.startingXs:
 			nextInterval = self.startingXs.pop()
+		elif self.coefficients is None:
+			fit = polyfit(self.xs, self.ys, 2, full=True)
+			print fit
+			self.coefficients = fit[0]
+			
+			#p = numpy.poly1d(self.coefficients)
+			#pylab.plot(self.xs, self.ys, self.xs, p(self.xs)); pylab.show()
+			
+			nextInterval = stats.quadraticMinimum(*self.coefficients)
 		else:
-			coefficients = polyfit(self.xs, self.ys, 2)
-			nextInterval = stats.quadraticMinimum(*coefficients)
+			return sampleInterval, sampleInterval
 		
 		return nextInterval, nextInterval
 		
-class QuadraticErrorFitting3:
-	def __init__(self, sampleInterval):
-		self.startingXs = [float(rawSps) / x for x in range(764, 772, 2)]
-		self.xs = []
-		self.ys = []
-		
-	def OnNewBuffer(self, buffer, sampleInterval):
-		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
-		leakage = power[9] + power[11]
-
-		self.xs.append(sampleInterval)
-		self.ys.append(leakage)
-		
-		if self.startingXs:
-			nextInterval = self.startingXs.pop()
-		else:
-			coefficients = polyfit(self.xs, self.ys, 2)
-			nextInterval = stats.quadraticMinimum(*coefficients)
-		
-		return nextInterval, nextInterval
-	
 class GoertzelValues:
 	def __init__(self, sampleInterval):
 		self.frequencies = [x / 10.0 for x in range(590, 610)]
@@ -289,7 +291,6 @@ class HybridGoertzelRandom:
 		else:
 			return self.randomLeap.OnNewBuffer(buffer, sampleInterval)
 		
-	
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
@@ -320,6 +321,13 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printState
 	#algorithm = SimulatedAnnealing(testSampleInterval)
 	
 	algorithm = algorithmClass(testSampleInterval)
+	try:
+		x = algorithm.GetFirstInterval()
+		if x:
+			realSampleInterval = x
+			testSampleInterval = x
+	except Exception, e:
+		print e
 	
 	realIntervalCounter = 0.0; testIntervalCounter = 0.0
 	
@@ -377,7 +385,7 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printState
 	
 	result = sum(realLeakages)	
 	if printStatements:
-		print 'final sample frequency: %f\terror: %f%%' % (float(rawSps)/realSampleInterval, 100.0 * abs(samplesPerSecond -float(rawSps)/realSampleInterval)/samplesPerSecond)
+		print 'final sample frequency: %f' % (float(rawSps)/realSampleInterval)#, 100.0 * abs(samplesPerSecond -float(rawSps)/realSampleInterval)/samplesPerSecond)
 		print 'total leakage: %f' % result
 		
 	if plot:

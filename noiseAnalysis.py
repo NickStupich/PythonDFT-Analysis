@@ -213,18 +213,18 @@ def getToneLeakage(downSampledData, binningType = 1):
 	return leakage
 	
 def PlotFreqDomain(rawData, rawSps, sps):
-	data = fftDataExtraction.downSample(data, rawSps, sps)
+	rawData = fftDataExtraction.downSample(data, rawSps, sps)
 	
 	
 if __name__ == "__main__":
 		
-	#data = dataImport.readADSFile(filename)
-	data = dataImport.generateSignal(rawSps, [(60.0, 1.0)])#, (120.0, 0.5), (180.0, 0.8)])
+	data = dataImport.readADSFile(filename)
+	#data = dataImport.generateSignal(rawSps, [(60.0, 1.0)])#, (120.0, 0.5), (180.0, 0.8)])
 	
-	PlotSpillageVsSampleFrequency(data, rawSps)
+	#PlotSpillageVsSampleFrequency(data, rawSps)
 	#PlotSpillageVsNoiseFrequency()
 	#ConvergeOnCoherentSampling(data, rawSps)
-	#PlotFreqDomain(data, rawSps, 770)
+	PlotFreqDomain(data, rawSps, constants.samplesPerSecond)
 	
 	"""
 	fData = map(absolute, fourier(data[:7192]))
