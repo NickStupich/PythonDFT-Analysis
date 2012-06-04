@@ -12,6 +12,7 @@ from noiseAnalysis import getToneLeakage
 #from __future__ import division
 import sys
 import functools
+import frequencyCrossCorrelations
 
 seed(1)
 
@@ -21,10 +22,10 @@ transformsPerSecond = 30
 
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
-#rawData = dataImport.readADSFile(filename)
-rawData = dataImport.generateSignal(rawSps, [(60., 1.0)], seconds = 10.0)
+rawData = dataImport.readADSFile(filename)
+#rawData = dataImport.generateSignal(rawSps, [(60., 1.0), (120.0, 0.8), (180.0, 0.7)], seconds = 10.0)
 
-#rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False); rawSps = 8000
+rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False); rawSps = 8000
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -45,7 +46,8 @@ class RandomLeapKeepBest:
 		self.t += 1
 		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
 		bins = [9, 11]
-		leakage = sum([power[bin] for bin in bins])
+		#leakage = sum([power[bin] for bin in bins])
+		leakage = getToneLeakage(buffer)
 		
 		if leakage < self.bestLeakage:
 			self.bestLeakage = leakage
@@ -176,10 +178,43 @@ class PeakImbalance:
 			
 		return self.bestInterval, newInterval
 		
+class GoertzelValues:
+	def __init__(self, sampleInterval):
+		self.frequencies = [x / 10.0 for x in range(590, 610)]
+	
+	def GetFrequencyPower(self, buffer, frequency):
+		return frequencyCrossCorrelations.matchQuality(buffer, frequency)
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		powers = [self.GetFrequencyPower(buffer, f) for f in self.frequencies]
+		
+		#pylab.plot(self.frequencies, powers); pylab.grid(True); pylab.show()
+		
+		maxIndex = powers.index(max(powers))
+		noiseFrequency = self.frequencies[maxIndex]
+		newInterval = sampleInterval * 60.0 / self.frequencies[maxIndex]
+		#print self.frequencies[maxIndex], newInterval
+		return newInterval, newInterval
+		
+class HybridGoertzelRandom:
+	def __init__(self, sampleInterval):
+		self.FirstLoop = True
+		self.geortzel = GoertzelValues(sampleInterval)
+		
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		if self.FirstLoop:
+			self.FirstLoop = False
+			result = self.geortzel.OnNewBuffer(buffer, sampleInterval)
+			self.randomLeap = RandomLeapKeepBest(result[0], leapSize = 0.01, decayPow = 0.8)
+			return result
+		else:
+			return self.randomLeap.OnNewBuffer(buffer, sampleInterval)
+		
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
-def GetExpectedError(algorithmClass, n = 1000):
+def GetExpectedError(algorithmClass, n = 10000):
 	import multiprocessing
 	
 	pool = multiprocessing.Pool(7)
@@ -302,8 +337,11 @@ if __name__ == "__main__":
 	RandomLeapKeepBest: Average error: 1.061977     +/-: 1.184265
 	SimulatedAnnealing: Average error: 1.431364     +/-: 1.506392
 	HybridShapeRandom: Average error: 5.130757      +/-: 6.733491
+	
+	June1 n=10000, Generated data
+	HybridGoertzelRandom: Average error: 0.286498   +/-: 0.235429
 	"""
 	
-	#GetExpectedError(PeakImbalance)
+	#GetExpectedError(HybridGoertzelRandom)
 	#GetExpectedError(SimulatedAnnealing)
 	#GetExpectedError(HybridShapeRandom)
