@@ -1,6 +1,6 @@
 import dataImport
 from numpy.fft import rfft as fourier
-from numpy import absolute
+from numpy import absolute, polyfit
 import plotting
 from matplotlib import pylab
 from math import log10, log, floor, ceil, exp, sqrt, sin, pi
@@ -12,7 +12,6 @@ from noiseAnalysis import getToneLeakage
 #from __future__ import division
 import sys
 import functools
-import frequencyCrossCorrelations
 
 seed(1)
 
@@ -20,12 +19,14 @@ samplesPerSecond = 768
 windowSize = 128
 transformsPerSecond = 30
 
-filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
 rawData = dataImport.readADSFile(filename)
-#rawData = dataImport.generateSignal(rawSps, [(60., 1.0), (120.0, 0.8), (180.0, 0.7)], seconds = 10.0)
+f = 59.9
+#rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 10.0)
 
-rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False); rawSps = 8000
+rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, 7950.0, interpolate = False)
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -46,8 +47,7 @@ class RandomLeapKeepBest:
 		self.t += 1
 		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
 		bins = [9, 11]
-		#leakage = sum([power[bin] for bin in bins])
-		leakage = getToneLeakage(buffer)
+		leakage = sum([power[bin] for bin in bins])
 		
 		if leakage < self.bestLeakage:
 			self.bestLeakage = leakage
@@ -178,6 +178,84 @@ class PeakImbalance:
 			
 		return self.bestInterval, newInterval
 		
+class QuadraticErrorFitting:
+	def __init__(self, sampleInterval, initialLeapSize = 0.04):
+		self.bestInterval = sampleInterval
+		self.bestLeakage = 999999999.9
+		self.initialLeapSize = initialLeapSize
+		
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
+		
+		leakage = power[9] + power[11]
+		
+		if leakage < self.bestLeakage:
+			self.bestLeakage = leakage
+			self.bestInterval = sampleInterval
+		
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if len(self.xs) > 5:
+			#fit quadratic to the leakages and sample intervals
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+			
+			self.bestInterval = nextInterval
+			#print rawSps / nextInterval
+			
+		else:
+			nextInterval = self.bestInterval * (1.0 + self.initialLeapSize*(random() - 0.5))
+			
+		print rawSps / nextInterval
+			
+		return self.bestInterval, nextInterval
+		
+class QuadraticErrorFitting2:
+	def __init__(self, sampleInterval):
+		self.startingXs = [float(rawSps) / x for x in range(760, 776, 2)]
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
+		leakage = power[9] + power[11]
+
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if self.startingXs:
+			nextInterval = self.startingXs.pop()
+		else:
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+		
+		return nextInterval, nextInterval
+		
+class QuadraticErrorFitting3:
+	def __init__(self, sampleInterval):
+		self.startingXs = [float(rawSps) / x for x in range(764, 772, 2)]
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
+		leakage = power[9] + power[11]
+
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if self.startingXs:
+			nextInterval = self.startingXs.pop()
+		else:
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+		
+		return nextInterval, nextInterval
+	
 class GoertzelValues:
 	def __init__(self, sampleInterval):
 		self.frequencies = [x / 10.0 for x in range(590, 610)]
@@ -211,10 +289,11 @@ class HybridGoertzelRandom:
 		else:
 			return self.randomLeap.OnNewBuffer(buffer, sampleInterval)
 		
+	
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
-def GetExpectedError(algorithmClass, n = 10000):
+def GetExpectedError(algorithmClass, n = 1000):
 	import multiprocessing
 	
 	pool = multiprocessing.Pool(7)
@@ -327,7 +406,10 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printState
 if __name__ == "__main__":
 
 	#totalLeakage = TestConvergence(PeakImbalance)
-	totalLeakage = TestConvergence(RandomLeapKeepBest)
+	#totalLeakage = TestConvergence(RandomLeapKeepBest)
+	#totalLeakage = TestConvergence(QuadraticErrorFitting)
+	totalLeakage = TestConvergence(QuadraticErrorFitting2)
+	
 
 	"""May30 results (n=5000), Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls:
 	SimulatedAnnealing: Average error: 1.535507     +/-: 1.606706
@@ -337,11 +419,8 @@ if __name__ == "__main__":
 	RandomLeapKeepBest: Average error: 1.061977     +/-: 1.184265
 	SimulatedAnnealing: Average error: 1.431364     +/-: 1.506392
 	HybridShapeRandom: Average error: 5.130757      +/-: 6.733491
-	
-	June1 n=10000, Generated data
-	HybridGoertzelRandom: Average error: 0.286498   +/-: 0.235429
 	"""
 	
-	#GetExpectedError(HybridGoertzelRandom)
+	#GetExpectedError(PeakImbalance)
 	#GetExpectedError(SimulatedAnnealing)
 	#GetExpectedError(HybridShapeRandom)
