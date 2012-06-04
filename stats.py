@@ -117,6 +117,12 @@ def Gaussian(x, sigma = 1.0, center = 0):
 def Rmse(x, y):
 	return math.sqrt(mean([(x-y)**2.0 for x, y in zip(x, y)]))
 	
+def quadraticMinimum(a, b, c):
+	#if a < 0:
+	#	raise Exception("Curving down quadratic does not have a minimum")
+		
+	return -b / (2.0 * a)
+	
 if __name__ == "__main__":
 	l1 = [0, 1, 2]
 	l2 = [2, 4, 9]

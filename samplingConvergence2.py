@@ -1,6 +1,6 @@
 import dataImport
 from numpy.fft import rfft as fourier
-from numpy import absolute
+from numpy import absolute, polyfit
 import plotting
 from matplotlib import pylab
 from math import log10, log, floor, ceil, exp, sqrt, sin, pi
@@ -19,12 +19,14 @@ samplesPerSecond = 768
 windowSize = 128
 transformsPerSecond = 30
 
-filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
-#rawData = dataImport.readADSFile(filename)
-rawData = dataImport.generateSignal(rawSps, [(60., 1.0)], seconds = 10.0)
+rawData = dataImport.readADSFile(filename)
+f = 59.9
+#rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 10.0)
 
-#rawData = fftDataExtraction.downSample(rawData, rawSps, 8000, interpolate = False); rawSps = 8000
+rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, 7950.0, interpolate = False)
 
 class TestAlgorithm:
 	def __init__(self, sampleInterval):
@@ -176,6 +178,84 @@ class PeakImbalance:
 			
 		return self.bestInterval, newInterval
 		
+class QuadraticErrorFitting:
+	def __init__(self, sampleInterval, initialLeapSize = 0.04):
+		self.bestInterval = sampleInterval
+		self.bestLeakage = 999999999.9
+		self.initialLeapSize = initialLeapSize
+		
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))
+		
+		leakage = power[9] + power[11]
+		
+		if leakage < self.bestLeakage:
+			self.bestLeakage = leakage
+			self.bestInterval = sampleInterval
+		
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if len(self.xs) > 5:
+			#fit quadratic to the leakages and sample intervals
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+			
+			self.bestInterval = nextInterval
+			#print rawSps / nextInterval
+			
+		else:
+			nextInterval = self.bestInterval * (1.0 + self.initialLeapSize*(random() - 0.5))
+			
+		print rawSps / nextInterval
+			
+		return self.bestInterval, nextInterval
+		
+class QuadraticErrorFitting2:
+	def __init__(self, sampleInterval):
+		self.startingXs = [float(rawSps) / x for x in range(760, 776, 2)]
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
+		leakage = power[9] + power[11]
+
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if self.startingXs:
+			nextInterval = self.startingXs.pop()
+		else:
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+		
+		return nextInterval, nextInterval
+		
+class QuadraticErrorFitting3:
+	def __init__(self, sampleInterval):
+		self.startingXs = [float(rawSps) / x for x in range(764, 772, 2)]
+		self.xs = []
+		self.ys = []
+		
+	def OnNewBuffer(self, buffer, sampleInterval):
+		power = map(lambda x: absolute(x) ** 2.0, fourier(buffer))		
+		leakage = power[9] + power[11]
+
+		self.xs.append(sampleInterval)
+		self.ys.append(leakage)
+		
+		if self.startingXs:
+			nextInterval = self.startingXs.pop()
+		else:
+			coefficients = polyfit(self.xs, self.ys, 2)
+			nextInterval = stats.quadraticMinimum(*coefficients)
+		
+		return nextInterval, nextInterval
+		
 def ConvergeFunc(algorithm, initialOffset):
 	return TestConvergence(algorithm, plot = False, initialOffset = initialOffset, printStatements = False)
 		
@@ -292,7 +372,10 @@ def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printState
 if __name__ == "__main__":
 
 	#totalLeakage = TestConvergence(PeakImbalance)
-	totalLeakage = TestConvergence(RandomLeapKeepBest)
+	#totalLeakage = TestConvergence(RandomLeapKeepBest)
+	#totalLeakage = TestConvergence(QuadraticErrorFitting)
+	totalLeakage = TestConvergence(QuadraticErrorFitting2)
+	
 
 	"""May30 results (n=5000), Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls:
 	SimulatedAnnealing: Average error: 1.535507     +/-: 1.606706
