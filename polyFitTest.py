@@ -30,7 +30,7 @@ def polynomialFit(x, y, order = 3, errors = None, returnErrors = False):
 	At = A.transpose()
 	alpha = At.dot(A)
 	
-	print alpha
+	#print alpha
 	beta = At.dot(b)
 	
 	C = alpha.getI()#inverse
@@ -42,6 +42,45 @@ def polynomialFit(x, y, order = 3, errors = None, returnErrors = False):
 		return coefs.transpose().tolist()[0], C
 	else:
 		return coefs.transpose().tolist()[0]
+	
+def polynomialFindMinimum(x, y, order = 3, errors = None, returnErrors = True):
+	coefs, C = polynomialFit(x, y, order, errors, returnErrors = True)
+	print C
+	"""
+	f = ax^2 + bx + c
+	min = -b/a2
+	
+	sigma_min = sqrt((df/da * sigma_a)^2 + (df/db * sigma_b)^2 + (2.0 * sigma_a * sigma_b * cov(a, b)))
+		= sqrt(t1 + t2 * t3)
+		
+	t1 = (df/da * sigma_a)^2
+	t1 = (b/(2*a*a) * sigma_a)^2
+	
+	t2 = (df/db * sigma_b) ^2
+	t2 = (-1.0 / (2*a) * sigma_b)
+	
+	t3 = (2.0 * sigma_a * sigma_b * cov(a, b))
+	"""
+	
+	a = coefs[0]
+	b = coefs[1]
+	var_a = C.item(0)#C[0][0]
+	var_b = C.item(4)#C[1][1]
+	covar = C.item(1)#C[0][1]
+	
+	result = -b / (2.0 * a)
+	
+	if not returnErrors:
+		return result
+	
+	t1 = ((b / (2.0 * a * a)) ** 2.0) * var_a
+	t2 = ((2.0 * a) ** -2.0) * var_b
+	t3 = (2.0 * a * b * covar)
+	
+	print t1, t2, t3
+	uncertainty = math.sqrt(t1 + t2 + t3)
+	
+	return result, uncertainty
 	
 if __name__ == "__main__":
 	"""
@@ -55,6 +94,10 @@ if __name__ == "__main__":
 	errors = [1.0, 1.0, 1.0, 1.0, 1.0]
 	order = 3
 	coefs, C = polynomialFit(x, y, order, errors, returnErrors = True)
+	
+	print polynomialFindMinimum(x, y, order, errors, True)
+	
+	"""
 	print coefs
 	print C
 	
@@ -87,5 +130,6 @@ if __name__ == "__main__":
 	#pylab.show()
 	
 	pylab.show()
+	"""
 	
 	
