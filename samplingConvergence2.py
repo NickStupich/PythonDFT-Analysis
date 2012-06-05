@@ -15,10 +15,10 @@ import functools
 
 seed(1)
 
-samplesPerSecond = 512
+samplesPerSecond = 768
 windowSize = 128
 transformsPerSecond = 30
-noiseBin = 15
+noiseBin = 20
 
 filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
