@@ -47,7 +47,8 @@ def polynomialFit(x, y, order = 3, errors = None, returnErrors = False):
 	
 def polynomialFindMinimum(x, y, order = 3, errors = None, returnErrors = True):
 	coefs, C = polynomialFit(x, y, order, errors, returnErrors = True)
-	#print C
+	print coefs
+	print C
 	"""
 	http://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm
 	f = ax^2 + bx + c
@@ -78,6 +79,8 @@ def polynomialFindMinimum(x, y, order = 3, errors = None, returnErrors = True):
 	#print a, b, var_a, var_b, covar
 	
 	result = -b / (2.0 * a)
+	
+	#pylab.plot(x, y); pylab.plot([result], result*result*coefs[2] + result*coefs[1] + coefs[0], 'ro'); pylab.show()
 	
 	if not returnErrors:
 		return result
@@ -135,8 +138,8 @@ def testFittingAndInterpolation():
 	
 def testPolynomialMinFinding():	
 	x = [0, 1, 2, 3, 5]
-	y = [xi*xi+14.0*xi + 3.0 for xi in x]
-	errors = [1.0, 1.0, 1.0, 1.0, 1.0]
+	y = [xi*xi+14.0*xi + 3.0 + random() for xi in x]
+	errors = [0.001] * len(x)
 	order = 3
 	coefs, C = polynomialFit(x, y, order, errors, returnErrors = True)
 	
@@ -211,6 +214,6 @@ def testSkewed():
 if __name__ == "__main__":
 	#testFittingAndInterpolation()
 	#scaleTestMinFinding()
-	testSkewed()
-	#testPolynomialMinFinding()
+	#testSkewed()
+	testPolynomialMinFinding()
 	

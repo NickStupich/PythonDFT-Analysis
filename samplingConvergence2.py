@@ -12,6 +12,7 @@ from random import random, seed
 #from __future__ import division
 import sys
 import functools
+import polyFitTest
 
 seed(1)
 
@@ -245,6 +246,7 @@ class QuadraticErrorFitting2:
 		if self.startingXs:
 			nextInterval = self.startingXs.pop()
 		elif self.coefficients is None:
+			"""
 			fit = polyfit(self.xs, self.ys, 2, full=True)
 			print fit
 			self.coefficients = fit[0]
@@ -253,6 +255,15 @@ class QuadraticErrorFitting2:
 			#pylab.plot(self.xs, self.ys, self.xs, p(self.xs)); pylab.show()
 			
 			nextInterval = stats.quadraticMinimum(*self.coefficients)
+			"""
+			self.coefficients = 1
+			#errors = [1.0] * len(self.xs)
+			errors = [sqrt(y) for y in self.ys]
+			nextInterval, error = polyFitTest.polynomialFindMinimum(self.xs, self.ys, errors = errors, order = 3, returnErrors = True)
+			sps = rawSps / nextInterval
+			sigma_sps = rawSps /(nextInterval**2.0) * error
+			print 'sps: %f +/- %f' % (sps, sigma_sps)
+			
 		else:
 			return sampleInterval, sampleInterval
 		
