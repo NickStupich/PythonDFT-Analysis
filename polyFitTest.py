@@ -47,8 +47,8 @@ def polynomialFit(x, y, order = 3, errors = None, returnErrors = False):
 	
 def polynomialFindMinimum(x, y, order = 3, errors = None, returnErrors = True):
 	coefs, C = polynomialFit(x, y, order, errors, returnErrors = True)
-	print coefs
-	print C
+	#print coefs
+	#print C
 	"""
 	http://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm
 	f = ax^2 + bx + c
@@ -88,7 +88,10 @@ def polynomialFindMinimum(x, y, order = 3, errors = None, returnErrors = True):
 	#calculate uncertainty
 	t1 = ((b / (2.0 * a * a)) ** 2.0) * var_a
 	t2 = ((2.0 * a) ** -2.0) * var_b
-	t3 = (-b / (4*a*a*a) * covar)
+	t3 = 2.0 * (-b / (4*a*a*a) * covar)
+	
+	#print t1, t2 ,t3
+	
 	uncertainty = math.sqrt(t1 + t2 + t3)
 	
 	return result, uncertainty
@@ -113,7 +116,6 @@ def testFittingAndInterpolation():
 	axis.plot(xp, yp, '-')
 	
 	axis.grid(True)
-	
 	
 	axis2 = axis.twinx()
 	
@@ -211,9 +213,19 @@ def testSkewed():
 	pylab.plot(positions, errors, 'o')
 	pylab.show()
 	
+def compareToLinear():
+	xs = [0, 1, 2, 3, 4, 5]
+	ys = [y * 100.0 for y in [1, 3, 5, 7, 9, 11]]
+	
+	coefs, C = polynomialFit(xs, ys, 2, returnErrors = True)
+	print coefs
+	print C
+	
+	print stats.lineOfBestFit(xs, ys, returnErrors = True)
+	
 if __name__ == "__main__":
 	#testFittingAndInterpolation()
 	#scaleTestMinFinding()
 	#testSkewed()
-	testPolynomialMinFinding()
-	
+	#testPolynomialMinFinding()
+	compareToLinear()

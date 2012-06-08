@@ -13,6 +13,7 @@ from random import random, seed
 import sys
 import functools
 import polyFitTest
+import functools
 
 seed(1)
 
@@ -21,21 +22,23 @@ windowSize = 128
 transformsPerSecond = 30
 noiseBin = 20
 
-filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
-#filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
+#filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
+filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
 #filename = "NoiseData/6 Loops 8000SPS Volts.xls"; rawSps = 8000
-#rawData = dataImport.readADSFile(filename)
+rawData = dataImport.readADSFile(filename)
 f = 59.96
-rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 10.0)
+#rawData = dataImport.generateSignal(rawSps, [(f, 1.0), (2.0*f, 0.5)], seconds = 5.0)
 
-tempF = 8100.0; rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, tempF, interpolate = False)
-print 'Ideal sample rate: %s' % (59.96 / 60.0 * samplesPerSecond * rawSps / tempF)
+fDown = 8000.0
 
+rawSps = 8000.0; rawData = fftDataExtraction.downSample(rawData, 32000, fDown, interpolate = False)[int(random() * 100):]
+#print 'Ideal sample rate: %s' % (59.96 / 60.0 * samplesPerSecond * rawSps / fDown)
 rangePercentage = 2.0
 
 def getToneLeakage(downSampledData):
 	power = map(lambda x: x*x, map(absolute, fourier(downSampledData)))
 	result = (power[noiseBin-1] + power[noiseBin+1]) / power[noiseBin]
+	#result = power[noiseBin-1] + power[noiseBin+1]
 	return result
 	
 class TestAlgorithm:
@@ -229,7 +232,7 @@ class QuadraticErrorFitting2:
 		low = samplesPerSecond * (1.0 - rangePercentage / 100)
 		high = samplesPerSecond *(1.0 + rangePercentage / 100)
 		steps = 6
-		self.startingXs = [float(rawSps) / x for x in [low + i * (high-low)/steps for i in range(steps)]]
+		self.startingXs = [float(fDown) / x for x in [low + i * (high-low)/steps for i in range(steps)]]
 		self.xs = []
 		self.ys = []
 		self.coefficients = None
@@ -237,7 +240,7 @@ class QuadraticErrorFitting2:
 	def GetFirstInterval(self):
 		return self.startingXs.pop()
 		
-	def OnNewBuffer(self, buffer, sampleInterval):
+	def OnNewBuffer(self, buffer, sampleInterval, returnIsDone = False):
 		leakage = getToneLeakage(buffer)
 
 		self.xs.append(sampleInterval)
@@ -260,14 +263,24 @@ class QuadraticErrorFitting2:
 			#errors = [1.0] * len(self.xs)
 			errors = [sqrt(y) for y in self.ys]
 			nextInterval, error = polyFitTest.polynomialFindMinimum(self.xs, self.ys, errors = errors, order = 3, returnErrors = True)
+			#print nextInterval, error
 			sps = rawSps / nextInterval
 			sigma_sps = rawSps /(nextInterval**2.0) * error
-			print 'sps: %f +/- %f' % (sps, sigma_sps)
+			#print 'sps: %f +/- %f' % (sps, sigma_sps)
 			
+			if returnIsDone:
+				return nextInterval, nextInterval, True
+				
 		else:
-			return sampleInterval, sampleInterval
+			if returnIsDone:
+				return sampleInterval, sampleInterval, True
+			else:
+				return sampleInterval, sampleInterval
 		
-		return nextInterval, nextInterval
+		if returnIsDone:
+			return nextInterval, nextInterval, False
+		else:
+			return nextInterval, nextInterval
 		
 class GoertzelValues:
 	def __init__(self, sampleInterval):
@@ -320,6 +333,62 @@ def GetExpectedError(algorithmClass, n = 1000):
 	
 	#print leakages
 	print '\r%s: Average error: %f \t+/-: %f' % (algorithmClass.__name__, stats.mean(leakages), stats.stdDev(leakages))
+		
+def TestQuadraticGuessAccuracy(rawData, n):
+	partial = functools.partial(QuadraticGuessIteration, rawData)
+	
+	results = map(lambda x: partial(), xrange(n))
+	
+	errors = map(lambda x: x[1] - x[0], results)
+	
+	pylab.hist(errors, bins = 50)
+	pylab.show()
+
+def QuadraticGuessIteration(rawData):
+	fDown = 8000.0 + 200.0 * (random() - 0.5)
+	rawSps = fDown; rawData = fftDataExtraction.downSample(rawData, 32000, fDown, interpolate = False)[int(random() * 100):]
+	calculatedSampleRate = (59.96 / 60.0 * samplesPerSecond * rawSps / fDown)
+	
+	algorithm = QuadraticErrorFitting2(0)
+	
+	testSampleInterval = algorithm.GetFirstInterval()
+	testIntervalCounter = 0.0
+	
+	testBufferNewAmount = windowSize
+	
+	testBuffer = []
+	
+	testLeakages = []; testLeakageTimes = []
+	testSampleRates = []
+	
+	lastSample = 0.0
+	
+	for index, sample in enumerate(rawData):
+		time = float(index) / rawSps
+		
+		testIntervalCounter += 1.0
+			
+		if testIntervalCounter >= testSampleInterval:
+			testIntervalCounter %= testSampleInterval
+			weight0 = min(1.0, testIntervalCounter)
+			weight1 = max(0.0, 1.0 - testIntervalCounter)
+			interpolatedSample = weight0 * sample + weight1 * lastSample
+			testBuffer.append(interpolatedSample)
+			
+			if len(testBuffer) > windowSize + testBufferNewAmount:
+				testBuffer = testBuffer[-windowSize:]
+				
+				leakage = getToneLeakage(testBuffer)
+				testLeakages.append(leakage)
+				testLeakageTimes.append(time)
+				testSampleRates.append(float(rawSps) / testSampleInterval)
+				
+				realSampleInterval, testSampleInterval, isDone = algorithm.OnNewBuffer(testBuffer, testSampleInterval, True)
+				if isDone:
+					#print testSampleInterval
+					break
+					
+	return calculatedSampleRate, rawSps / testSampleInterval
 		
 def TestConvergence(algorithmClass, plot = True, initialOffset = 2.3, printStatements = True):
 	global rawData
@@ -427,7 +496,9 @@ if __name__ == "__main__":
 	#totalLeakage = TestConvergence(PeakImbalance)
 	#totalLeakage = TestConvergence(RandomLeapKeepBest)
 	#totalLeakage = TestConvergence(QuadraticErrorFitting)
-	totalLeakage = TestConvergence(QuadraticErrorFitting2)
+	#totalLeakage = TestConvergence(QuadraticErrorFitting2)
+	
+	print TestQuadraticGuessAccuracy(rawData, 1000)
 	
 
 	"""May30 results (n=5000), Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls:

@@ -26,7 +26,7 @@ def pearson(lx, ly):
 def mean(l):
 	return sum(l) / float(len(l))
 	
-def lineOfBestFit(lx, ly):
+def lineOfBestFit(lx, ly, returnErrors = False):
 	lx2 = [float(x) * x for x in lx]
 	lxy = [float(x) * y for x, y in zip(lx, ly)]
 	
@@ -35,13 +35,21 @@ def lineOfBestFit(lx, ly):
 	sxy = sum(lxy)
 	sx = sum([float(x) for x in lx])
 	sy = sum([float(y) for y in ly])
+	s = sum([1.0 for x in lx])	
 	
 	denom = n * sx2 - sx * sx
 	
 	yint = (sy * sx2 - sx * sxy) / denom
 	slope = float(n * sxy - sx * sy) / denom
 	
-	return (slope, yint)
+	if not returnErrors:
+		return (slope, yint)
+	else:
+		var_yint = sx2/denom
+		var_slope = s /denom
+		covar = -sx/denom
+		
+		return ((slope, yint), (var_slope, var_yint, covar))
 	
 #fits a set of points to the function 1 - e^(a*x + b)
 def exponentialDecayFit(lx, ly):
