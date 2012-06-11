@@ -14,13 +14,13 @@ samplesPerSecond = 768
 windowSize = 128
 rangePercentage = 2.0
 channels = 7
-measurementCount = 50
+measurementCount = 10
 
-filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_10%.xls"; rawSps = 32000
+filename = "Data/Mark/32kSPS_160kS_FlexorRadialis_0%.xls"; rawSps = 32000
 #filename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_0%.xls"; rawSps = 32000
-#rawData = dataImport.readADSFile(filename)
+rawData = dataImport.readADSFile(filename)
 f = 59.96
-rawData = dataImport.generateSignal(rawSps, [(f, 1.0)], seconds = 5.0, noise = 1.0)
+#rawData = dataImport.generateSignal(rawSps, [(f, 1.0)], seconds = 5.0, noise = 1.0)
 
 rawSps = 8000
 rawData = fftDataExtraction.downSample(rawData, 32000, rawSps, interpolate = False)[int(random() * 100):]
