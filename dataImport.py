@@ -2,8 +2,12 @@ import os
 from math import cos, pi, sin
 import random
 
-def readADSFile(filename):
-	return [float(x) for x in open(filename).read(
+def readADSFile(filename, channels = 1):
+	if channels == 1:
+		return [float(x) for x in open(filename).read(
+).split('CH1')[-1].strip('\n').split('\n') if len(x) > 5]
+	else:
+		return [[float(y) for y in x.split()] for x in open(filename).read(
 ).split('CH1')[-1].strip('\n').split('\n') if len(x) > 5]
 
 def getSPS(filename):

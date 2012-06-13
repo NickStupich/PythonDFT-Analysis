@@ -9,7 +9,7 @@ baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 lowPercent = 0
 highPercent = 10
 transformsPerSecond = 30
-type = 15
+type = 1
 
 if type == 1:
 	windowSize = 128
