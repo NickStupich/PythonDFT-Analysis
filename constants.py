@@ -9,7 +9,7 @@ baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 lowPercent = 0
 highPercent = 10
 transformsPerSecond = 30
-type = 1
+type = 18
 
 if type == 1:
 	windowSize = 128
@@ -75,6 +75,14 @@ elif type == 16:
 	windowSize = 128
 	samplesPerSecond = 1280
 	bins = [2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19]
+elif type == 17:
+	windowSize = 256
+	samplesPerSecond = 512
+	bins = range(10,28) + range(32, 57) + range(63, 85)
+elif type == 18:
+	windowSize = 512
+	samplesPerSecond = 512
+	bins = range(20, 56) + range(64, 116) + range(124, 176)
 else:
 	raise Exception("invalid constants type")
 	
@@ -84,7 +92,7 @@ resolution = (float(samplesPerSecond)/windowSize)
 
 def printConstants():
 	#print some info
-	print 'Base file: %s' % baseFilename
+	#print 'Base file: %s' % baseFilename
 	print 'Bins: %s' % str([int(bin * resolution) for bin in bins])
 	print "Window size: %d" % windowSize
 	print "Samples per second: %d" % samplesPerSecond

@@ -4,10 +4,16 @@ import constants
 import fftDataExtraction
 import svmutil
 import svmAccuracy
+import FirFilter
 
-#baseFilename = "Data\IndividualFingers/8kSPS_40kS_ExtensorRadialis_%s.xls"
-baseFilename = "Data\IndividualFingers/8kSPS_40kS_FlexorRadialis_%s.xls"
+baseFilename = "Data\IndividualFingers/8kSPS_40kS_ExtensorRadialis_%s.xls"
+#baseFilename = "Data\IndividualFingers/8kSPS_40kS_FlexorRadialis_%s.xls"
+print baseFilename
 rawSps = 8000
+
+filterData = True
+
+constants.printConstants()
 
 files = {	"Both" : [1, 1],
 			"IndexFinger" : [1, 0],
@@ -17,15 +23,16 @@ files = {	"Both" : [1, 1],
 
 def plotTimeDomainSignals(datas):
 	times = [float(x) / rawSps for x in range(len(datas[0][0]))]
-	numChannels = len(datas)
-	pylab.subplot(numChannels * 100 + 11)
+	numFiles = len(datas)
+	numChannels = len(datas[0])
+	#pylab.subplot(numFiles * 100 + 11)
 	for i, (rawData, output) in enumerate(datas):
-		pylab.subplot(numChannels * 100 + 11 + i)
 		channels = zip(*rawData)
-		for channel in channels:
+		for j, channel in enumerate(channels):
+			pylab.subplot(numFiles * 100 + 10 * (numChannels) + i*2 + j + 1)
 			pylab.plot(times, channel)
-		pylab.title(str(output))
-		pylab.grid(True)
+			pylab.grid(True)
+			pylab.title(str(output) + ' chan: %d' % j)
 	pylab.show()
 	
 def getSVMTrainingData(datas):
@@ -36,7 +43,7 @@ def getSVMTrainingData(datas):
 		for channel in channels:
 			downSampledData = fftDataExtraction.downSample(channel, rawSps, constants.samplesPerSecond, interpolate = True)
 			
-			transforms = fftDataExtraction.applyTransformsToWindows(fftDataExtraction.getFFTWindows(downSampledData), magnitude = True)
+			transforms = fftDataExtraction.applyTransformsToWindows(fftDataExtraction.getFFTWindows(downSampledData), magnitude = True, polyFitSubtraction = 2)
 			
 			bins = fftDataExtraction.DoFrequencyBinning(transforms)
 			allBins.append(bins)
@@ -53,10 +60,6 @@ def getSVMAccuracy(trainingData):
 		inputs = [input for (input, output) in trainingData]
 		outputs = [output[outputIndex] for (input, output) in trainingData]
 		
-		#print inputs[-1], outputs[0]
-		#print outputs
-		#print len(inputs), len(outputs)
-		
 		prob = svmutil.svm_problem(outputs, inputs)
 		param = svmAccuracy.getSvmParam(cross_validation_only = True)
 		
@@ -70,8 +73,16 @@ if __name__ == "__main__":
 		output = files[f]
 		filename = baseFilename % f
 		rawData = dataImport.readADSFile(filename, channels = len(output))
+		if filterData:
+			channels = zip(*rawData)
+			filteredChannels = []
+			for channel in channels:
+				filteredChannels.append(FirFilter.bandStopFilterData(channel, rawSps, [60.0, 120.0, 180.0], log2Taps = 13))
+				print 'filtered'
+			rawData = zip(*filteredChannels)
+		
 		datas.append((rawData, output))
 		
-#	plotTimeDomainSignals(datas)
+	plotTimeDomainSignals(datas)
 	trainingData = getSVMTrainingData(datas)
 	getSVMAccuracy(trainingData)
