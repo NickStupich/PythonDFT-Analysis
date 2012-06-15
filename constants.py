@@ -9,12 +9,18 @@ baseFilename = "Data/Mark/32kSPS_160kS_ExtensorRadialis_%d%%.xls"
 lowPercent = 0
 highPercent = 10
 transformsPerSecond = 30
-type = 18
+type = 1
+combinedBins = None
 
 if type == 1:
 	windowSize = 128
 	samplesPerSecond = 768
-	bins = [4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28]
+	bins = [4, 5, 6, 7, 8, 9, 
+			11, 12, 13, 14, 15, 16, 17, 18, 19, 
+			21, 22, 23, 24, 25, 26, 27, 28, 29]
+	combinedBins = [[0, 1], [2, 3], [4, 5], 
+					[6, 7], [8, 9], [10, 11], [12, 13, 14],
+					[15, 16, 17], [18, 19, 20], [21, 22, 23]]
 elif type == 2:
 	windowSize = 256
 	samplesPerSecond = 1024
@@ -93,7 +99,11 @@ resolution = (float(samplesPerSecond)/windowSize)
 def printConstants():
 	#print some info
 	#print 'Base file: %s' % baseFilename
-	print 'Bins: %s' % str([int(bin * resolution) for bin in bins])
+	if combinedBins:
+		binStr = ', '.join(['(' + ' '.join([str(bins[cb] * resolution) for cb in cbs]) + ')' for cbs in combinedBins])
+	else:
+		binStr = str([int(bin * resolution) for bin in bins])
+	print 'Bins: %s' % binStr
 	print "Window size: %d" % windowSize
 	print "Samples per second: %d" % samplesPerSecond
 	print "Transforms per second: %d" % transformsPerSecond
@@ -102,3 +112,5 @@ def printConstants():
 	print "Maximum frequency: %f" % (samplesPerSecond / 2)
 	print 'Window time length: %dms' % int(1000 * windowSize / samplesPerSecond)
 	print '60Hz cycles per window: %f' % (60.0 * windowSize / samplesPerSecond)
+#	print 'combined Bins:
+	

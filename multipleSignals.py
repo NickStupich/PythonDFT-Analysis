@@ -11,7 +11,7 @@ baseFilename = "Data\IndividualFingers/8kSPS_40kS_ExtensorRadialis_%s.xls"
 print baseFilename
 rawSps = 8000
 
-filterData = True
+filterData = False
 
 constants.printConstants()
 
@@ -83,6 +83,6 @@ if __name__ == "__main__":
 		
 		datas.append((rawData, output))
 		
-	plotTimeDomainSignals(datas)
+	#plotTimeDomainSignals(datas)
 	trainingData = getSVMTrainingData(datas)
 	getSVMAccuracy(trainingData)

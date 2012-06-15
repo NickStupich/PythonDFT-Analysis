@@ -79,8 +79,14 @@ def applyTransformsToWindows(windows, magnitude = False, polyFitSubtraction = wi
 		
 	return frequencyDomains
 	
-def DoFrequencyBinning(frequencyDomains, logOfBin = False):
-	return map(lambda x: [log10(x[bin]) if logOfBin else x[bin] for bin in bins], frequencyDomains)
+def DoFrequencyBinning(frequencyDomains, logOfBin = False, combineIfPossible = False):
+	result = map(lambda x: [log10(x[bin]) if logOfBin else x[bin] for bin in bins], frequencyDomains)
+	if combineIfPossible and combinedBins:
+		result2 = map(lambda x: [(sum([x[cb] for cb in cbs])) for cbs in combinedBins], result)			
+		return result2
+		
+	return result
+	
 	
 def extractFFTData(filename, magnitude = False, applyBinning = False):
 	downSampled = getDownSampledData(filename)	
