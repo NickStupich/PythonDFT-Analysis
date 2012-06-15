@@ -24,7 +24,12 @@ if type == 1:
 elif type == 2:
 	windowSize = 256
 	samplesPerSecond = 1024
-	bins = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+	bins = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 
+			16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+			32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43]
+	combinedBins = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], 
+					[12, 13, 14], [15, 16, 17], [18, 19, 20], [21, 22, 23],
+					[24, 25, 26], [27, 28, 29], [30, 31, 32], [33, 34, 35]]
 elif type == 3:
 	windowSize = 128
 	samplesPerSecond = 1024
@@ -101,9 +106,12 @@ def printConstants():
 	#print 'Base file: %s' % baseFilename
 	if combinedBins:
 		binStr = ', '.join(['(' + ' '.join([str(bins[cb] * resolution) for cb in cbs]) + ')' for cbs in combinedBins])
+		numBins = len(combinedBins)
 	else:
 		binStr = str([int(bin * resolution) for bin in bins])
+		numBins = len(bins)
 	print 'Bins: %s' % binStr
+	print 'Number of bins: %s' % numBins
 	print "Window size: %d" % windowSize
 	print "Samples per second: %d" % samplesPerSecond
 	print "Transforms per second: %d" % transformsPerSecond
